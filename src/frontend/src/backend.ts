@@ -105,11 +105,13 @@ export interface WhatsAppConfig {
 }
 export interface SiteSettings {
     googleMapEmbed: string;
+    contactLocation: string;
     whatsappConfig?: WhatsAppConfig;
+    contactEmail: string;
     companyName: string;
     pricingTable: Array<[string, number]>;
     certifications: string;
-    contactDetails: string;
+    contactPhone: string;
 }
 export interface _CaffeineStorageRefillInformation {
     proposed_top_up_amount?: bigint;
@@ -171,11 +173,11 @@ export interface backendInterface {
     _caffeineStorageRefillCashier(refillInformation: _CaffeineStorageRefillInformation | null): Promise<_CaffeineStorageRefillResult>;
     _caffeineStorageUpdateGatewayPrincipals(): Promise<void>;
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
-    addProduct(product: Product, adminKey: string): Promise<void>;
+    addProduct(product: Product): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    getAllEnquiries(adminKey: string): Promise<Array<Enquiry>>;
-    getAllFeedback(adminKey: string): Promise<Array<Feedback>>;
-    getAllMessages(adminKey: string): Promise<Array<Message>>;
+    getAllEnquiries(): Promise<Array<Enquiry>>;
+    getAllFeedback(): Promise<Array<Feedback>>;
+    getAllMessages(): Promise<Array<Message>>;
     getAllProducts(): Promise<Array<Product>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
@@ -188,7 +190,7 @@ export interface backendInterface {
     sendMessage(message: Message): Promise<void>;
     submitEnquiry(enquiry: Enquiry): Promise<void>;
     submitFeedback(feedbackData: Feedback): Promise<void>;
-    updateSiteSettings(settings: SiteSettings, adminKey: string): Promise<void>;
+    updateSiteSettings(settings: SiteSettings): Promise<void>;
 }
 import type { Enquiry as _Enquiry, ExternalBlob as _ExternalBlob, OrderType as _OrderType, Product as _Product, SiteSettings as _SiteSettings, UserProfile as _UserProfile, UserRole as _UserRole, WhatsAppConfig as _WhatsAppConfig, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -291,17 +293,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async addProduct(arg0: Product, arg1: string): Promise<void> {
+    async addProduct(arg0: Product): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.addProduct(await to_candid_Product_n8(this._uploadFile, this._downloadFile, arg0), arg1);
+                const result = await this.actor.addProduct(await to_candid_Product_n8(this._uploadFile, this._downloadFile, arg0));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.addProduct(await to_candid_Product_n8(this._uploadFile, this._downloadFile, arg0), arg1);
+            const result = await this.actor.addProduct(await to_candid_Product_n8(this._uploadFile, this._downloadFile, arg0));
             return result;
         }
     }
@@ -319,45 +321,45 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async getAllEnquiries(arg0: string): Promise<Array<Enquiry>> {
+    async getAllEnquiries(): Promise<Array<Enquiry>> {
         if (this.processError) {
             try {
-                const result = await this.actor.getAllEnquiries(arg0);
+                const result = await this.actor.getAllEnquiries();
                 return from_candid_vec_n13(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getAllEnquiries(arg0);
+            const result = await this.actor.getAllEnquiries();
             return from_candid_vec_n13(this._uploadFile, this._downloadFile, result);
         }
     }
-    async getAllFeedback(arg0: string): Promise<Array<Feedback>> {
+    async getAllFeedback(): Promise<Array<Feedback>> {
         if (this.processError) {
             try {
-                const result = await this.actor.getAllFeedback(arg0);
+                const result = await this.actor.getAllFeedback();
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getAllFeedback(arg0);
+            const result = await this.actor.getAllFeedback();
             return result;
         }
     }
-    async getAllMessages(arg0: string): Promise<Array<Message>> {
+    async getAllMessages(): Promise<Array<Message>> {
         if (this.processError) {
             try {
-                const result = await this.actor.getAllMessages(arg0);
+                const result = await this.actor.getAllMessages();
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getAllMessages(arg0);
+            const result = await this.actor.getAllMessages();
             return result;
         }
     }
@@ -529,17 +531,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async updateSiteSettings(arg0: SiteSettings, arg1: string): Promise<void> {
+    async updateSiteSettings(arg0: SiteSettings): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.updateSiteSettings(to_candid_SiteSettings_n37(this._uploadFile, this._downloadFile, arg0), arg1);
+                const result = await this.actor.updateSiteSettings(to_candid_SiteSettings_n37(this._uploadFile, this._downloadFile, arg0));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.updateSiteSettings(to_candid_SiteSettings_n37(this._uploadFile, this._downloadFile, arg0), arg1);
+            const result = await this.actor.updateSiteSettings(to_candid_SiteSettings_n37(this._uploadFile, this._downloadFile, arg0));
             return result;
         }
     }
@@ -654,26 +656,32 @@ async function from_candid_record_n22(_uploadFile: (file: ExternalBlob) => Promi
 }
 function from_candid_record_n28(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     googleMapEmbed: string;
+    contactLocation: string;
     whatsappConfig: [] | [_WhatsAppConfig];
+    contactEmail: string;
     companyName: string;
     pricingTable: Array<[string, number]>;
     certifications: string;
-    contactDetails: string;
+    contactPhone: string;
 }): {
     googleMapEmbed: string;
+    contactLocation: string;
     whatsappConfig?: WhatsAppConfig;
+    contactEmail: string;
     companyName: string;
     pricingTable: Array<[string, number]>;
     certifications: string;
-    contactDetails: string;
+    contactPhone: string;
 } {
     return {
         googleMapEmbed: value.googleMapEmbed,
+        contactLocation: value.contactLocation,
         whatsappConfig: record_opt_to_undefined(from_candid_opt_n29(_uploadFile, _downloadFile, value.whatsappConfig)),
+        contactEmail: value.contactEmail,
         companyName: value.companyName,
         pricingTable: value.pricingTable,
         certifications: value.certifications,
-        contactDetails: value.contactDetails
+        contactPhone: value.contactPhone
     };
 }
 function from_candid_record_n31(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
@@ -793,26 +801,32 @@ async function to_candid_record_n34(_uploadFile: (file: ExternalBlob) => Promise
 }
 function to_candid_record_n38(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     googleMapEmbed: string;
+    contactLocation: string;
     whatsappConfig?: WhatsAppConfig;
+    contactEmail: string;
     companyName: string;
     pricingTable: Array<[string, number]>;
     certifications: string;
-    contactDetails: string;
+    contactPhone: string;
 }): {
     googleMapEmbed: string;
+    contactLocation: string;
     whatsappConfig: [] | [_WhatsAppConfig];
+    contactEmail: string;
     companyName: string;
     pricingTable: Array<[string, number]>;
     certifications: string;
-    contactDetails: string;
+    contactPhone: string;
 } {
     return {
         googleMapEmbed: value.googleMapEmbed,
+        contactLocation: value.contactLocation,
         whatsappConfig: value.whatsappConfig ? candid_some(to_candid_WhatsAppConfig_n39(_uploadFile, _downloadFile, value.whatsappConfig)) : candid_none(),
+        contactEmail: value.contactEmail,
         companyName: value.companyName,
         pricingTable: value.pricingTable,
         certifications: value.certifications,
-        contactDetails: value.contactDetails
+        contactPhone: value.contactPhone
     };
 }
 function to_candid_record_n40(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {

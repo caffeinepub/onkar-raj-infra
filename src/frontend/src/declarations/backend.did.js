@@ -75,11 +75,13 @@ export const WhatsAppConfig = IDL.Record({
 });
 export const SiteSettings = IDL.Record({
   'googleMapEmbed' : IDL.Text,
+  'contactLocation' : IDL.Text,
   'whatsappConfig' : IDL.Opt(WhatsAppConfig),
+  'contactEmail' : IDL.Text,
   'companyName' : IDL.Text,
   'pricingTable' : IDL.Vec(IDL.Tuple(IDL.Text, IDL.Float64)),
   'certifications' : IDL.Text,
-  'contactDetails' : IDL.Text,
+  'contactPhone' : IDL.Text,
 });
 
 export const idlService = IDL.Service({
@@ -110,11 +112,11 @@ export const idlService = IDL.Service({
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-  'addProduct' : IDL.Func([Product, IDL.Text], [], []),
+  'addProduct' : IDL.Func([Product], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'getAllEnquiries' : IDL.Func([IDL.Text], [IDL.Vec(Enquiry)], ['query']),
-  'getAllFeedback' : IDL.Func([IDL.Text], [IDL.Vec(Feedback)], ['query']),
-  'getAllMessages' : IDL.Func([IDL.Text], [IDL.Vec(Message)], ['query']),
+  'getAllEnquiries' : IDL.Func([], [IDL.Vec(Enquiry)], ['query']),
+  'getAllFeedback' : IDL.Func([], [IDL.Vec(Feedback)], ['query']),
+  'getAllMessages' : IDL.Func([], [IDL.Vec(Message)], ['query']),
   'getAllProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -135,7 +137,7 @@ export const idlService = IDL.Service({
   'sendMessage' : IDL.Func([Message], [], []),
   'submitEnquiry' : IDL.Func([Enquiry], [], []),
   'submitFeedback' : IDL.Func([Feedback], [], []),
-  'updateSiteSettings' : IDL.Func([SiteSettings, IDL.Text], [], []),
+  'updateSiteSettings' : IDL.Func([SiteSettings], [], []),
 });
 
 export const idlInitArgs = [];
@@ -208,11 +210,13 @@ export const idlFactory = ({ IDL }) => {
   });
   const SiteSettings = IDL.Record({
     'googleMapEmbed' : IDL.Text,
+    'contactLocation' : IDL.Text,
     'whatsappConfig' : IDL.Opt(WhatsAppConfig),
+    'contactEmail' : IDL.Text,
     'companyName' : IDL.Text,
     'pricingTable' : IDL.Vec(IDL.Tuple(IDL.Text, IDL.Float64)),
     'certifications' : IDL.Text,
-    'contactDetails' : IDL.Text,
+    'contactPhone' : IDL.Text,
   });
   
   return IDL.Service({
@@ -243,11 +247,11 @@ export const idlFactory = ({ IDL }) => {
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-    'addProduct' : IDL.Func([Product, IDL.Text], [], []),
+    'addProduct' : IDL.Func([Product], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'getAllEnquiries' : IDL.Func([IDL.Text], [IDL.Vec(Enquiry)], ['query']),
-    'getAllFeedback' : IDL.Func([IDL.Text], [IDL.Vec(Feedback)], ['query']),
-    'getAllMessages' : IDL.Func([IDL.Text], [IDL.Vec(Message)], ['query']),
+    'getAllEnquiries' : IDL.Func([], [IDL.Vec(Enquiry)], ['query']),
+    'getAllFeedback' : IDL.Func([], [IDL.Vec(Feedback)], ['query']),
+    'getAllMessages' : IDL.Func([], [IDL.Vec(Message)], ['query']),
     'getAllProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -268,7 +272,7 @@ export const idlFactory = ({ IDL }) => {
     'sendMessage' : IDL.Func([Message], [], []),
     'submitEnquiry' : IDL.Func([Enquiry], [], []),
     'submitFeedback' : IDL.Func([Feedback], [], []),
-    'updateSiteSettings' : IDL.Func([SiteSettings, IDL.Text], [], []),
+    'updateSiteSettings' : IDL.Func([SiteSettings], [], []),
   });
 };
 

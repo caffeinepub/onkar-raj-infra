@@ -1,61 +1,46 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useActor } from './useActor';
 import type { UserProfile } from '../backend';
 import { adminSession } from '../utils/adminSession';
 
 export function useIsCallerAdmin() {
-  const { actor, isFetching: actorFetching } = useActor();
-
+  // This hook is deprecated for admin route guarding
+  // Admin access is now determined solely by session unlock state
+  // Kept for backward compatibility but returns session state instead of backend check
   return useQuery<boolean>({
     queryKey: ['isAdmin'],
     queryFn: async () => {
-      if (!actor) return false;
-      try {
-        return await actor.isCallerAdmin();
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-        return false;
-      }
+      return adminSession.isUnlocked();
     },
-    enabled: !!actor && !actorFetching,
-    retry: false,
     staleTime: 0,
   });
 }
 
 export function useVerifyAdminPasskey() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (passkey: string) => {
-      if (!actor) throw new Error('Actor not available');
+      // Simple client-side passkey verification
+      const ADMIN_PASSKEY = 'Ved_ansh@04';
+      
+      if (!passkey || passkey.trim() !== ADMIN_PASSKEY) {
+        // Clear any stored passkey on failure
+        adminSession.clear();
+        throw new Error('Invalid passkey');
+      }
       
       try {
-        // Test the passkey by calling an admin method (getAllProducts is a safe read-only test)
-        await actor.getAllEnquiries(passkey);
-        
         // Store the passkey in session for subsequent admin calls
-        adminSession.setPasskey(passkey);
+        adminSession.setPasskey(passkey.trim());
+        
+        // Emit session change event
+        adminSession.notifyChange();
         
         return true;
       } catch (error: any) {
         // Clear any stored passkey on failure
-        adminSession.clearPasskey();
-        
-        // Provide user-friendly error message
-        if (error.message && error.message.includes('Unauthorized')) {
-          throw new Error('Invalid passkey. Please check and try again.');
-        }
-        throw new Error('Verification failed. Please check your passkey.');
+        adminSession.clear();
+        throw new Error('An error occurred. Please try again.');
       }
-    },
-    onSuccess: async () => {
-      // Proactively set admin status to true in cache
-      queryClient.setQueryData(['isAdmin'], true);
-      
-      // Invalidate and refetch to ensure backend truth
-      await queryClient.invalidateQueries({ queryKey: ['isAdmin'] });
     },
   });
 }

@@ -30,11 +30,13 @@ export interface WhatsAppConfig {
 }
 export interface SiteSettings {
     googleMapEmbed: string;
+    contactLocation: string;
     whatsappConfig?: WhatsAppConfig;
+    contactEmail: string;
     companyName: string;
     pricingTable: Array<[string, number]>;
     certifications: string;
-    contactDetails: string;
+    contactPhone: string;
 }
 export interface Feedback {
     id: string;
@@ -78,11 +80,11 @@ export enum UserRole {
     guest = "guest"
 }
 export interface backendInterface {
-    addProduct(product: Product, adminKey: string): Promise<void>;
+    addProduct(product: Product): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    getAllEnquiries(adminKey: string): Promise<Array<Enquiry>>;
-    getAllFeedback(adminKey: string): Promise<Array<Feedback>>;
-    getAllMessages(adminKey: string): Promise<Array<Message>>;
+    getAllEnquiries(): Promise<Array<Enquiry>>;
+    getAllFeedback(): Promise<Array<Feedback>>;
+    getAllMessages(): Promise<Array<Message>>;
     getAllProducts(): Promise<Array<Product>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
@@ -95,5 +97,5 @@ export interface backendInterface {
     sendMessage(message: Message): Promise<void>;
     submitEnquiry(enquiry: Enquiry): Promise<void>;
     submitFeedback(feedbackData: Feedback): Promise<void>;
-    updateSiteSettings(settings: SiteSettings, adminKey: string): Promise<void>;
+    updateSiteSettings(settings: SiteSettings): Promise<void>;
 }

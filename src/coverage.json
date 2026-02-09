@@ -1,47 +1,73 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T08:25:15.783Z",
+  "generatedAt": "2026-02-09T10:08:44.162Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 2,
+    "total": 4,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Update the backend admin verification logic so that admin access to /admin is unlocked using only the static passkey \"Ved_ansh@04\" (no email allowlist check for admin verification).",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Update the frontend admin unlock UI to be a single-step passkey prompt only (remove the email screen/step entirely) and allow non-numeric passkeys (remove numeric-only input constraints).",
+        "summary": "Fix the /admin unlock flow so entering the correct admin passkey \"Ved_ansh@04\" successfully unlocks the admin session (no erroneous \"Invalid passkey\" error) and grants access to all /admin routes without requiring Internet Identity login.",
         "status": "implemented",
         "plannedFiles": [
+          "frontend/src/hooks/useActor.ts",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/hooks/useAuthz.ts",
+          "frontend/src/pages/admin/AdminRouteGuard.tsx",
+          "frontend/src/utils/adminSession.ts",
           "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/hooks/useAuthz.ts",
+          "frontend/src/pages/admin/AdminRouteGuard.tsx",
+          "frontend/src/utils/adminSession.ts"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Update frontend admin verification error handling so non-passkey failures (e.g., backend actor initialization errors, missing admin token initialization, network issues) are not misreported as \"Invalid passkey\"; show distinct, user-facing English messages for service/initialization failures.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useAuthz.ts",
+          "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
+          "frontend/src/pages/admin/AdminRouteGuard.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useAuthz.ts",
+          "frontend/src/pages/admin/AdminRouteGuard.tsx"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Update the frontend admin verification call path (AdminRouteGuard/useVerifyAdminCredentials) to work with passkey-only admin verification and successfully navigate to /admin/products after a correct passkey entry, without showing \"Verification failed. Please check your credentials.\" for the correct passkey.",
+        "summary": "Ensure admin unlock persists for the duration of the browser session and is cleared on explicit admin logout.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/admin/AdminRouteGuard.tsx",
-          "frontend/src/hooks/useAuthz.ts",
-          "frontend/src/utils/adminCredentials.ts"
+          "frontend/src/utils/adminSession.ts",
+          "frontend/src/pages/admin/AdminLayoutPage.tsx",
+          "frontend/src/pages/admin/AdminRouteGuard.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/admin/AdminRouteGuard.tsx",
-          "frontend/src/hooks/useAuthz.ts",
-          "frontend/src/utils/adminCredentials.ts"
+          "frontend/src/utils/adminSession.ts",
+          "frontend/src/pages/admin/AdminLayoutPage.tsx",
+          "frontend/src/pages/admin/AdminRouteGuard.tsx"
         ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Keep Internet Identity enabled for non-admin parts of the site; do not require Internet Identity for /admin access or imply it as a prerequisite in the admin access UI.",
+        "status": "missing",
+        "plannedFiles": [
+          "frontend/src/components/auth/LoginButton.tsx",
+          "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
+          "frontend/src/App.tsx"
+        ],
+        "matchedFiles": []
       }
     ]
   },
@@ -58,9 +84,8 @@
     "frontend/src/declarations/backend.did.js",
     "frontend/src/hooks/useAuthz.ts",
     "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/admin/AdminLayoutPage.tsx",
     "frontend/src/pages/admin/AdminRouteGuard.tsx",
-    "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
-    "frontend/src/utils/adminCredentials.ts",
     "frontend/src/utils/adminSession.ts",
     "project_state.json",
     "scratch/component-selection.json",

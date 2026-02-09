@@ -16,6 +16,7 @@ export default function TopNav() {
     { path: '/uses', label: 'Applications' },
     { path: '/order', label: 'Order' },
     { path: '/contact', label: 'Contact' },
+    { path: '/admin', label: 'Admin' },
   ];
 
   return (
@@ -39,7 +40,7 @@ export default function TopNav() {
               key={link.path}
               to={link.path}
               className={`text-sm font-medium transition-colors hover:text-primary ${
-                currentPath === link.path
+                currentPath === link.path || (link.path === '/admin' && currentPath.startsWith('/admin'))
                   ? 'text-primary'
                   : 'text-muted-foreground'
               }`}
@@ -71,7 +72,7 @@ export default function TopNav() {
                 to={link.path}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`block rounded-md px-3 py-2 text-base font-medium transition-colors hover:bg-accent ${
-                  currentPath === link.path
+                  currentPath === link.path || (link.path === '/admin' && currentPath.startsWith('/admin'))
                     ? 'bg-accent text-accent-foreground'
                     : 'text-muted-foreground'
                 }`}

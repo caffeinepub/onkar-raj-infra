@@ -1,10 +1,6 @@
-import { ReactNode, useEffect, useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { useInternetIdentity } from '../../hooks/useInternetIdentity';
-import { useIsCallerAdmin, useVerifyAdminPasskey } from '../../hooks/useAuthz';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, ShieldAlert } from 'lucide-react';
-import LoginButton from '../../components/auth/LoginButton';
+import { ReactNode, useState, useEffect } from 'react';
+import { useNavigate, useLocation } from '@tanstack/react-router';
+import { useVerifyAdminPasskey } from '../../hooks/useAuthz';
 import AdminTwoStepAccessPrompt from './AdminTwoStepAccessPrompt';
 import { adminSession } from '../../utils/adminSession';
 
@@ -14,99 +10,45 @@ interface AdminRouteGuardProps {
 
 export default function AdminRouteGuard({ children }: AdminRouteGuardProps) {
   const navigate = useNavigate();
-  const { identity, isInitializing } = useInternetIdentity();
-  const { data: isAdmin, isLoading: isCheckingAdmin, refetch } = useIsCallerAdmin();
+  const location = useLocation();
   const verifyMutation = useVerifyAdminPasskey();
-  const [showPrompt, setShowPrompt] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(adminSession.isUnlocked());
 
-  const isAuthenticated = !!identity;
-
-  // Clear session storage when identity becomes null (logout)
+  // Subscribe to session changes
   useEffect(() => {
-    if (!isAuthenticated) {
-      adminSession.clear();
-      setShowPrompt(false);
-    }
-  }, [isAuthenticated]);
-
-  // Show prompt when authenticated but not admin and not session-unlocked
-  useEffect(() => {
-    if (isAuthenticated && !isCheckingAdmin && isAdmin === false && !adminSession.isUnlocked()) {
-      setShowPrompt(true);
-    } else if (isAuthenticated && !isCheckingAdmin && isAdmin === true) {
-      setShowPrompt(false);
-    }
-  }, [isAuthenticated, isCheckingAdmin, isAdmin]);
+    const unsubscribe = adminSession.subscribe(() => {
+      setIsUnlocked(adminSession.isUnlocked());
+    });
+    return unsubscribe;
+  }, []);
 
   const handleVerify = async (passkey: string) => {
     try {
       await verifyMutation.mutateAsync(passkey);
-      // Wait for admin status to refresh
-      const result = await refetch();
+      // Successfully verified, update state
+      setIsUnlocked(true);
       
-      if (result.data === true) {
-        // Successfully verified, close prompt and navigate to default admin page
-        setShowPrompt(false);
-        adminSession.setUnlocked();
+      // Navigate to the originally requested path, or default to /admin/products if on /admin
+      if (location.pathname === '/admin') {
         navigate({ to: '/admin/products' });
-      } else {
-        // Verification succeeded but admin status not updated - throw error
-        throw new Error('Verification succeeded but admin status not confirmed. Please try again.');
       }
+      // Otherwise stay on the current path (it will now render)
     } catch (error: any) {
       // Re-throw to let the prompt component handle the error display
       throw error;
     }
   };
 
-  if (isInitializing || isCheckingAdmin) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+  // If session is unlocked, render admin content
+  if (isUnlocked) {
+    return <>{children}</>;
   }
 
-  if (!isAuthenticated) {
-    return (
-      <div className="container py-12">
-        <Alert className="mx-auto max-w-md">
-          <ShieldAlert className="h-4 w-4" />
-          <AlertTitle>Authentication Required</AlertTitle>
-          <AlertDescription className="space-y-4">
-            <p>You must be logged in to access the admin dashboard.</p>
-            <LoginButton />
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  if (showPrompt && !isAdmin) {
-    return (
-      <AdminTwoStepAccessPrompt
-        onVerify={handleVerify}
-        isVerifying={verifyMutation.isPending}
-      />
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="container py-12">
-        <Alert variant="destructive" className="mx-auto max-w-md">
-          <ShieldAlert className="h-4 w-4" />
-          <AlertTitle>Access Denied</AlertTitle>
-          <AlertDescription>
-            You do not have permission to access the admin dashboard.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  return <>{children}</>;
+  // Otherwise, show passkey prompt (no admin content should be visible)
+  return (
+    <AdminTwoStepAccessPrompt
+      onVerify={handleVerify}
+      isVerifying={verifyMutation.isPending}
+    />
+  );
 }

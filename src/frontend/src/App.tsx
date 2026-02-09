@@ -1,4 +1,4 @@
-import { RouterProvider, createRouter, createRoute, createRootRoute, redirect } from '@tanstack/react-router';
+import { RouterProvider, createRouter, createRoute, createRootRoute } from '@tanstack/react-router';
 import { ThemeProvider } from 'next-themes';
 import SiteLayout from './components/layout/SiteLayout';
 import HomePage from './pages/HomePage';
@@ -8,10 +8,6 @@ import UsesApplicationsPage from './pages/UsesApplicationsPage';
 import OrderEnquiryPage from './pages/OrderEnquiryPage';
 import ContactPage from './pages/ContactPage';
 import AdminLayoutPage from './pages/admin/AdminLayoutPage';
-import AdminProductsPage from './pages/admin/AdminProductsPage';
-import AdminEnquiriesPage from './pages/admin/AdminEnquiriesPage';
-import AdminFeedbackPage from './pages/admin/AdminFeedbackPage';
-import AdminMessagesPage from './pages/admin/AdminMessagesPage';
 import AdminRouteGuard from './pages/admin/AdminRouteGuard';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -55,7 +51,7 @@ const contactRoute = createRoute({
   component: ContactPage,
 });
 
-// Admin routes with guard
+// Admin routes with guard - all admin routes now render AdminLayoutPage which handles sub-routing
 const adminRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/admin',
@@ -64,10 +60,6 @@ const adminRoute = createRoute({
       <AdminLayoutPage />
     </AdminRouteGuard>
   ),
-  beforeLoad: () => {
-    // Redirect /admin to /admin/products by default
-    throw redirect({ to: '/admin/products' });
-  },
 });
 
 const adminProductsRoute = createRoute({

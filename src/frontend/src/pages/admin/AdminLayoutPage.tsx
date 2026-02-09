@@ -1,7 +1,9 @@
-import { Outlet, useLocation } from '@tanstack/react-router';
+import { Outlet, useLocation, useNavigate } from '@tanstack/react-router';
 import { Link } from '@tanstack/react-router';
-import { Package, FileText, MessageSquare, Mail } from 'lucide-react';
+import { Package, FileText, MessageSquare, Mail, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { adminSession } from '../../utils/adminSession';
 import AdminProductsPage from './AdminProductsPage';
 import AdminEnquiriesPage from './AdminEnquiriesPage';
 import AdminFeedbackPage from './AdminFeedbackPage';
@@ -9,6 +11,7 @@ import AdminMessagesPage from './AdminMessagesPage';
 
 export default function AdminLayoutPage() {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navItems = [
     { path: '/admin/products', label: 'Products', icon: Package },
@@ -16,6 +19,12 @@ export default function AdminLayoutPage() {
     { path: '/admin/feedback', label: 'Feedback', icon: MessageSquare },
     { path: '/admin/messages', label: 'Messages', icon: Mail },
   ];
+
+  const handleAdminLogout = () => {
+    adminSession.logout();
+    // Navigate to home and force a re-render
+    navigate({ to: '/' });
+  };
 
   // Determine which page to render based on current path
   const renderPage = () => {
@@ -36,11 +45,22 @@ export default function AdminLayoutPage() {
   return (
     <div className="py-12">
       <div className="container">
-        <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-bold">Admin Dashboard</h1>
-          <p className="text-muted-foreground">
-            Manage products, view enquiries, feedback, and messages
-          </p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="mb-2 text-3xl font-bold">Admin Dashboard</h1>
+            <p className="text-muted-foreground">
+              Manage products, view enquiries, feedback, and messages
+            </p>
+          </div>
+          <Button
+            onClick={handleAdminLogout}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Admin Logout
+          </Button>
         </div>
 
         <div className="mb-6 flex flex-wrap gap-2 border-b">

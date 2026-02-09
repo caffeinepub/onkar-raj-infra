@@ -1,9 +1,8 @@
 import Array "mo:core/Array";
 import Iter "mo:core/Iter";
-import Platform "mo:core/Runtime";
+import Runtime "mo:core/Runtime";
 import Text "mo:core/Text";
 import Map "mo:core/Map";
-import List "mo:core/List";
 import Nat "mo:core/Nat";
 import Order "mo:core/Order";
 import Storage "blob-storage/Storage";
@@ -40,10 +39,19 @@ actor {
   };
 
   include MixinStorage();
+
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
 
-  let staticAdminPasskey = "Ved_ansh@04";
+  var products = Map.empty<Text, Product>();
+  var enquiries = Map.empty<Text, Enquiry>();
+  var feedback = Map.empty<Text, Feedback>();
+  var messages = Map.empty<Text, Message>();
+  var userProfiles = Map.empty<Principal, UserProfile>();
+
+  // Passkey-based admin authentication (deprecated)
+  // let adminPasskey : Text = "Ved_ansh@04";
+  // var adminUnlockedState : Bool = false;
 
   public type UserProfile = {
     name : Text;
@@ -99,7 +107,9 @@ actor {
 
   public type SiteSettings = {
     companyName : Text;
-    contactDetails : Text;
+    contactLocation : Text;
+    contactEmail : Text;
+    contactPhone : Text;
     googleMapEmbed : Text;
     whatsappConfig : ?WhatsAppConfig;
     pricingTable : [(Text, Float)];
@@ -113,69 +123,60 @@ actor {
 
   var siteSettings : SiteSettings = {
     companyName = "Onkar Raj Infra";
-    contactDetails = "Placeholder contact details";
+    contactLocation = "Placeholder location";
+    contactEmail = "contact@placeholder.com";
+    contactPhone = "+911234567890";
     googleMapEmbed = "";
     whatsappConfig = null;
     pricingTable = [];
     certifications = "";
   };
 
-  var products = Map.empty<Text, Product>();
-  var enquiries = Map.empty<Text, Enquiry>();
-  var feedback = Map.empty<Text, Feedback>();
-  var messages = Map.empty<Text, Message>();
-  var userProfiles = Map.empty<Principal, UserProfile>();
-
   /////////////////////////////////////////////////////////////////////////////
-  // Authorization Helper
+  // Authorization Helpers
   /////////////////////////////////////////////////////////////////////////////
-  func isAuthorizedAdmin(caller : Principal, providedPasskey : Text) : Bool {
-    if (providedPasskey == staticAdminPasskey) {
-      true;
-    } else if (AccessControl.isAdmin(accessControlState, caller)) {
-      true;
-    } else {
-      false;
-    };
+  // Helper function to check if caller has admin access (via AccessControl only)
+  private func isAdminAuthorized(caller : Principal) : Bool {
+    AccessControl.isAdmin(accessControlState, caller);
   };
 
   /////////////////////////////////////////////////////////////////////////////
-  // User Profile Methods
+  // User Profile Methods (using AccessControl for user management)
   /////////////////////////////////////////////////////////////////////////////
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Platform.trap("Unauthorized: Only users can access profiles");
+      Runtime.trap("Unauthorized: Only users can access profiles");
     };
     userProfiles.get(caller);
   };
 
   public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
     if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
-      Platform.trap("Unauthorized: Can only view your own profile");
+      Runtime.trap("Unauthorized: Can only view your own profile");
     };
     userProfiles.get(user);
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Platform.trap("Unauthorized: Only users can save profiles");
+      Runtime.trap("Unauthorized: Only users can save profiles");
     };
     userProfiles.add(caller, profile);
   };
 
   /////////////////////////////////////////////////////////////////////////////
-  // Product Methods
+  // Product Methods (admin functions restricted by access control)
   /////////////////////////////////////////////////////////////////////////////
-  public shared ({ caller }) func addProduct(product : Product, adminKey : Text) : async () {
-    if (not isAuthorizedAdmin(caller, adminKey)) {
-      Platform.trap("Unauthorized: Only admins with the provided passkey can add products");
+  public shared ({ caller }) func addProduct(product : Product) : async () {
+    if (not isAdminAuthorized(caller)) {
+      Runtime.trap("Unauthorized: Only admins can add products");
     };
     products.add(product.id, product);
   };
 
   public query func getProduct(id : Text) : async Product {
     switch (products.get(id)) {
-      case (null) { Platform.trap("Product not found") };
+      case (null) { Runtime.trap("Product not found") };
       case (?product) { product };
     };
   };
@@ -191,23 +192,23 @@ actor {
   public shared ({ caller }) func submitEnquiry(enquiry : Enquiry) : async () {
     // Contact info validation
     if (enquiry.phoneNumber.size() == 0) {
-      Platform.trap("Phone number is required");
+      Runtime.trap("Phone number is required");
     };
     if (enquiry.email.size() == 0) {
-      Platform.trap("Email address is required");
+      Runtime.trap("Email address is required");
     };
 
     // Minimum quantity validation (2000 meters)
     if (enquiry.quantity < 2000) {
-      Platform.trap("Order quantity must be at least 2000 meters");
+      Runtime.trap("Order quantity must be at least 2000 meters");
     };
 
     enquiries.add(enquiry.id, enquiry);
   };
 
-  public query ({ caller }) func getAllEnquiries(adminKey : Text) : async [Enquiry] {
-    if (not isAuthorizedAdmin(caller, adminKey)) {
-      Platform.trap("Unauthorized: Only admins with the provided passkey can view enquiries");
+  public query ({ caller }) func getAllEnquiries() : async [Enquiry] {
+    if (not isAdminAuthorized(caller)) {
+      Runtime.trap("Unauthorized: Only admins can view all enquiries");
     };
     let enquiryIter = enquiries.values();
     let enquiryArray = enquiryIter.toArray();
@@ -215,42 +216,43 @@ actor {
   };
 
   /////////////////////////////////////////////////////////////////////////////
-  // Feedback Methods
+  // Feedback Methods (access restricted by admin role)
   /////////////////////////////////////////////////////////////////////////////
   public shared ({ caller }) func submitFeedback(feedbackData : Feedback) : async () {
     feedback.add(feedbackData.id, feedbackData);
   };
 
-  public query ({ caller }) func getAllFeedback(adminKey : Text) : async [Feedback] {
-    if (not isAuthorizedAdmin(caller, adminKey)) {
-      Platform.trap("Unauthorized: Only admins with the provided passkey can view feedback");
+  public query ({ caller }) func getAllFeedback() : async [Feedback] {
+    if (not isAdminAuthorized(caller)) {
+      Runtime.trap("Unauthorized: Only admins can access all feedback");
     };
+
     let feedbackArray = feedback.values().toArray();
     feedbackArray.sort(Feedback.compareByTime);
   };
 
   /////////////////////////////////////////////////////////////////////////////
-  // Message Methods
+  // Message Methods (restricted by admin access)
   /////////////////////////////////////////////////////////////////////////////
   public shared ({ caller }) func sendMessage(message : Message) : async () {
     messages.add(message.id, message);
   };
 
-  public query ({ caller }) func getAllMessages(adminKey : Text) : async [Message] {
-    if (not isAuthorizedAdmin(caller, adminKey)) {
-      Platform.trap("Unauthorized: Only admins with the provided passkey can view messages");
+  public query ({ caller }) func getAllMessages() : async [Message] {
+    if (not isAdminAuthorized(caller)) {
+      Runtime.trap("Unauthorized: Only admins can access the messages");
     };
-    let messageValues = messages.values();
-    let messageArray = messageValues.toArray();
-    messageArray.sort(Message.compareByTime);
+
+    let messagesArray = messages.values().toArray();
+    messagesArray.sort(Message.compareByTime);
   };
 
   /////////////////////////////////////////////////////////////////////////////
-  // Site Settings Methods
+  // Site Settings Methods (access restricted by admin role)
   /////////////////////////////////////////////////////////////////////////////
-  public shared ({ caller }) func updateSiteSettings(settings : SiteSettings, adminKey : Text) : async () {
-    if (not isAuthorizedAdmin(caller, adminKey)) {
-      Platform.trap("Unauthorized: Only admins with the provided passkey can update site settings");
+  public shared ({ caller }) func updateSiteSettings(settings : SiteSettings) : async () {
+    if (not isAdminAuthorized(caller)) {
+      Runtime.trap("Unauthorized: Only admins can update site settings");
     };
     siteSettings := settings;
   };

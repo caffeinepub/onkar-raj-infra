@@ -1,79 +1,112 @@
 {
   "kind": "build_request",
-  "title": "Retry build: make /admin unlock passkey-only (remove email step) and update admin passkey",
-  "priority": "normal",
+  "title": "Restore version-10 passkey-only /admin login and fix 'Invalid passkey' regression",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Update the backend admin verification logic so that admin access to /admin is unlocked using only the static passkey \"Ved_ansh@04\" (no email allowlist check for admin verification).",
-      "target": "backend",
+      "text": "Fix the /admin unlock flow so entering the correct admin passkey \"Ved_ansh@04\" successfully unlocks the admin session (no erroneous \"Invalid passkey\" error) and grants access to all /admin routes without requiring Internet Identity login.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "msg-4",
+          "msg-8",
+          "msg-14"
         ],
         "quotes": [
-          "for admin login, remove the email verification and just let there be passkey verification to go to /admin",
-          "new passkey will be Ved_ansh@04",
-          "try to build again"
+          "it is still showing passkey as invalid",
+          "there was no passkey issues in version 10 i want it like that",
+          "in version 10... i just had to enter the passkey Ved_ansh@04 and i was able to login. there was no need of internet identity"
         ]
       },
       "acceptanceCriteria": [
-        "backend/main.mo no longer rejects admin verification due to email not being in an allowlist",
-        "The configured admin passkey constant used for verification is exactly \"Ved_ansh@04\"",
-        "Calling verifyAdminCredentials with the correct passkey returns true and marks the caller as verified admin for subsequent admin-only methods (e.g., addProduct, getAllEnquiries, updateSiteSettings)."
+        "When visiting /admin (or any /admin/* route) while not logged into Internet Identity, the app shows the passkey prompt and the passkey \"Ved_ansh@04\" unlocks admin access successfully.",
+        "When visiting /admin (or any /admin/* route) while logged into Internet Identity, the app still allows passkey-only unlock and does not require logging out of Internet Identity to access admin.",
+        "After successful unlock, navigating directly to /admin/products, /admin/enquiries, /admin/feedback, and /admin/messages works without re-entering the passkey during the same browser session.",
+        "Backend calls used by admin pages (e.g., addProduct, getAllEnquiriesWithPasskey, updateSiteSettings, getAllFeedback, getAllMessages) succeed after unlock using the stored session passkey."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Update the frontend admin unlock UI to be a single-step passkey prompt only (remove the email screen/step entirely) and allow non-numeric passkeys (remove numeric-only input constraints).",
+      "text": "Update frontend admin verification error handling so non-passkey failures (e.g., backend actor initialization errors, missing admin token initialization, network issues) are not misreported as \"Invalid passkey\"; show distinct, user-facing English messages for service/initialization failures.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "msg-4"
         ],
         "quotes": [
-          "for admin login, remove the email verification and just let there be passkey verification to go to /admin",
-          "new passkey will be Ved_ansh@04"
+          "it is still showing passkey as invalid"
         ]
       },
       "acceptanceCriteria": [
-        "Navigating to any /admin route while logged in and not yet admin-unlocked shows only one prompt for passkey (no email field, no email step, no back-to-email navigation).",
-        "The passkey input accepts the full string \"Ved_ansh@04\" (letters/symbols) and is not restricted to numeric input (no numeric-only pattern/inputMode constraints).",
-        "On incorrect passkey, the UI shows an English error message and remains on the passkey prompt."
+        "If admin verification fails due to service initialization or connectivity (not a backend \"Invalid passkey\" trap), the UI displays a non-passkey-specific message (e.g., \"Service unavailable. Please try again.\") instead of \"Invalid passkey\".",
+        "If the backend explicitly rejects the passkey (trap includes \"Invalid passkey\"), the UI displays \"Invalid passkey\".",
+        "The admin session in sessionStorage is cleared on failed verification attempts."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Update the frontend admin verification call path (AdminRouteGuard/useVerifyAdminCredentials) to work with passkey-only admin verification and successfully navigate to /admin/products after a correct passkey entry, without showing \"Verification failed. Please check your credentials.\" for the correct passkey.",
+      "text": "Ensure admin unlock persists for the duration of the browser session and is cleared on explicit admin logout.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "msg-14",
+          "msg-15"
         ],
         "quotes": [
-          "now, it is not rerouting me to email page but showing Verification failed. Please check your credentials.",
-          "try to build again"
+          "in version 10... i just had to enter the passkey Ved_ansh@04 and i was able to login.",
+          "build"
         ]
       },
       "acceptanceCriteria": [
-        "Entering the correct passkey \"Ved_ansh@04\" unlocks admin access for the current session and routes the user to /admin/products.",
-        "After successful verification, the admin prompt does not re-appear during the same session while the user remains logged in.",
-        "The message \"Verification failed. Please check your credentials.\" is not shown when the correct passkey is entered."
+        "After successful passkey verification, adminSession.isUnlocked() returns true until the browser session ends or the admin explicitly logs out.",
+        "Clicking the existing \"Admin Logout\" button clears the stored admin unlock state and passkey and returns the user to a non-admin route (e.g., /).",
+        "After admin logout, visiting any /admin/* route shows the passkey prompt again."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Keep Internet Identity enabled for non-admin parts of the site; do not require Internet Identity for /admin access or imply it as a prerequisite in the admin access UI.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-11",
+          "msg-12"
+        ],
+        "quotes": [
+          "yes not for everyone",
+          "Internet Identity login is not required for admin access. Only the passkey is needed."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Public pages continue to show and use Internet Identity login/logout as before.",
+        "Admin access prompt continues to state that Internet Identity is not required for admin access.",
+        "No /admin route redirects the user to an Internet Identity login flow to unlock admin access."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo (no additional backend services).",
-    "Do not edit any files under frontend/src/components/ui or any frontend immutablePaths listed in SYSTEM_CONTEXT.",
-    "Keep normal (non-admin) user authentication/verification behavior unchanged."
+    "Backend must remain a single Motoko actor in backend/main.mo; introduce backend/migration.mo only if stable state layout changes are required.",
+    "Do not edit files under frontend/src/components/ui or any other paths listed in frontend.immutablePaths (compose those components instead).",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Implementing Internet Identity-based admin authentication (this request is for a static passkey only).",
-    "Adding new admin roles, multiple admin passkeys, or persistent (localStorage) admin unlock state.",
-    "Changing public site pages, product/enquiry/feedback/message functionality beyond what is required to fix admin login/unlock."
+    "Do not remove Internet Identity from the rest of the site (non-admin users).",
+    "Do not add third-party authentication providers (only Internet Identity is allowed).",
+    "Do not introduce external databases or additional backend services."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

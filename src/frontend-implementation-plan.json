@@ -1,47 +1,125 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Passkey-only admin unlock UI and verification flow",
+  "title": "Restore passkey-only admin unlock and fix invalid-passkey regression (frontend-only)",
   "requirements": [
     {
-      "id": "REQ-2",
-      "summary": "Convert the admin unlock UI to a single-step passkey prompt (no email step) and allow non-numeric passkeys.",
+      "id": "REQ-1",
+      "summary": "Make /admin unlock work with passkey-only (Ved_ansh@04) and keep all /admin routes accessible within the same browser session without requiring Internet Identity.",
       "acceptanceCriteria": [
-        "Navigating to any /admin route while logged in and not yet admin-unlocked shows only one prompt for passkey (no email field, no email step, no back-to-email navigation).",
-        "The passkey input accepts the full string \"Ved_ansh@04\" (letters/symbols) and is not restricted to numeric input (no numeric-only pattern/inputMode constraints).",
-        "On incorrect passkey, the UI shows an English error message and remains on the passkey prompt."
+        "When visiting /admin (or any /admin/* route) while not logged into Internet Identity, the app shows the passkey prompt and the passkey \"Ved_ansh@04\" unlocks admin access successfully.",
+        "When visiting /admin (or any /admin/* route) while logged into Internet Identity, the app still allows passkey-only unlock and does not require logging out of Internet Identity to access admin.",
+        "After successful unlock, navigating directly to /admin/products, /admin/enquiries, /admin/feedback, and /admin/messages works without re-entering the passkey during the same browser session.",
+        "Backend calls used by admin pages (e.g., addProduct, getAllEnquiriesWithPasskey, updateSiteSettings, getAllFeedback, getAllMessages) succeed after unlock using the stored session passkey."
       ],
       "file_operations": [
         {
+          "path": "frontend/src/hooks/useActor.ts",
+          "operation": "modify",
+          "description": "Add support for creating/using an explicitly anonymous backend actor for admin-passkey flows so admin unlock and admin calls are not coupled to (or blocked by) Internet Identity state. Ensure this does not alter existing non-admin Internet Identity behavior."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Switch admin-only queries/mutations (products/enquiries/feedback/messages/site-settings admin mutations) to use the anonymous admin actor and the stored session passkey, so admin backend calls succeed after unlock regardless of Internet Identity login state."
+        },
+        {
+          "path": "frontend/src/hooks/useAuthz.ts",
+          "operation": "modify",
+          "description": "Update passkey verification to use the anonymous admin actor and to store the verified passkey in the existing admin session utility for subsequent admin calls."
+        },
+        {
+          "path": "frontend/src/pages/admin/AdminRouteGuard.tsx",
+          "operation": "modify",
+          "description": "After successful passkey verification, navigate to the originally requested /admin route (or default to /admin/products only when the requested path is exactly /admin). Ensure the guard re-renders immediately after unlock (no stale locked UI)."
+        },
+        {
+          "path": "frontend/src/utils/adminSession.ts",
+          "operation": "modify",
+          "description": "Add a small subscription/notification mechanism (e.g., a custom event) so React UI can reliably re-render when admin unlock state changes during the current session, while still storing the passkey and unlock flag in sessionStorage."
+        },
+        {
           "path": "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
           "operation": "modify",
-          "description": "Replace the two-step (email + passkey) flow with a single passkey-only form: remove ALLOWED_EMAILS, remove step state and email form, remove Back button, and update copy to reference passkey-only unlock. Update the passkey Input to accept arbitrary text by removing numeric-only constraints (e.g., inputMode/pattern) while keeping password masking. Ensure incorrect passkey shows a clear English error and keeps the user on the same prompt. Verify the component's usage instructions before implementing."
+          "description": "Ensure the passkey prompt UX supports the updated verification flow and clearly remains passkey-only (no Internet Identity prerequisite messaging changes beyond keeping it explicit). Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Improve admin verification error handling to avoid misreporting service/initialization/network failures as \"Invalid passkey\" and clear sessionStorage on failed attempts.",
+      "acceptanceCriteria": [
+        "If admin verification fails due to service initialization or connectivity (not a backend \"Invalid passkey\" trap), the UI displays a non-passkey-specific message (e.g., \"Service unavailable. Please try again.\") instead of \"Invalid passkey\".",
+        "If the backend explicitly rejects the passkey (trap includes \"Invalid passkey\"), the UI displays \"Invalid passkey\".",
+        "The admin session in sessionStorage is cleared on failed verification attempts."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useAuthz.ts",
+          "operation": "modify",
+          "description": "Refine error classification in useVerifyAdminPasskey: only show \"Invalid passkey\" when the backend explicitly rejects it; otherwise show distinct English messages for initialization/unavailable/network errors. Always clear adminSession on any failed verification attempt."
+        },
+        {
+          "path": "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
+          "operation": "modify",
+          "description": "Ensure the UI surfaces distinct, user-facing English error messages coming from verification (service initialization/unavailable/network vs invalid passkey) without overwriting them with a generic \"Invalid passkey\". Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/admin/AdminRouteGuard.tsx",
+          "operation": "modify",
+          "description": "Ensure failed verification attempts do not unlock the guard and that any thrown errors are passed through cleanly to the prompt for correct messaging."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Update the admin guard + verification hook integration to perform passkey-only verification and route to /admin/products on success without false failure messaging.",
+      "summary": "Persist admin unlock for the browser session and clear it on explicit Admin Logout.",
       "acceptanceCriteria": [
-        "Entering the correct passkey \"Ved_ansh@04\" unlocks admin access for the current session and routes the user to /admin/products.",
-        "After successful verification, the admin prompt does not re-appear during the same session while the user remains logged in.",
-        "The message \"Verification failed. Please check your credentials.\" is not shown when the correct passkey is entered."
+        "After successful passkey verification, adminSession.isUnlocked() returns true until the browser session ends or the admin explicitly logs out.",
+        "Clicking the existing \"Admin Logout\" button clears the stored admin unlock state and passkey and returns the user to a non-admin route (e.g., /).",
+        "After admin logout, visiting any /admin/* route shows the passkey prompt again."
       ],
       "file_operations": [
         {
+          "path": "frontend/src/utils/adminSession.ts",
+          "operation": "modify",
+          "description": "Ensure logout() and clear() fully remove both the unlock flag and passkey from sessionStorage, and emit the session-change notification so guards/pages update immediately."
+        },
+        {
+          "path": "frontend/src/pages/admin/AdminLayoutPage.tsx",
+          "operation": "modify",
+          "description": "Keep the existing Admin Logout behavior, but ensure it triggers the session-change notification and reliably returns the user to a non-admin route (/) so subsequent /admin navigation prompts for passkey again."
+        },
+        {
           "path": "frontend/src/pages/admin/AdminRouteGuard.tsx",
           "operation": "modify",
-          "description": "Update the guard’s verification wiring to pass passkey-only into the prompt and hook: adjust handleVerify signature to accept only passkey (or accept passkey and internally supply an empty email), and ensure successful verification closes the prompt and navigates to /admin/products. Keep existing behavior for non-admin users and logout session clearing unchanged. Verify the component's usage instructions before implementing."
+          "description": "Listen to the admin session-change notification so the guard reliably switches between locked/unlocked states within the same tab session (including after logout)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Keep Internet Identity enabled for public areas and ensure /admin access remains passkey-only with no Internet Identity prerequisite or redirects.",
+      "acceptanceCriteria": [
+        "Public pages continue to show and use Internet Identity login/logout as before.",
+        "Admin access prompt continues to state that Internet Identity is not required for admin access.",
+        "No /admin route redirects the user to an Internet Identity login flow to unlock admin access."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/auth/LoginButton.tsx",
+          "operation": "modify",
+          "description": "Confirm no admin-specific coupling is introduced: keep Internet Identity login/logout behavior unchanged for public pages and ensure any auth cache clearing remains scoped to Internet Identity logout only. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/hooks/useAuthz.ts",
+          "path": "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
           "operation": "modify",
-          "description": "Adjust useVerifyAdminCredentials to support passkey-only verification: accept a passkey-only input from callers (or continue using the existing AdminCredentials shape but allow empty email), normalize only what is needed, and ensure that on a successful backend response it sets the session unlock flag and refreshes admin status. Ensure error handling does not emit the generic \"Verification failed. Please check your credentials.\" when the backend returns success for the correct passkey. Verify the component's usage instructions before implementing."
+          "description": "Preserve/verify the existing message stating Internet Identity is not required for admin access; ensure the prompt does not suggest logging into or out of Internet Identity to proceed. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/utils/adminCredentials.ts",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Update credential normalization to be compatible with passkey-only admin unlock (e.g., avoid requiring a meaningful email, and ensure passkey is preserved as-entered aside from trimming). Verify the component's usage instructions before implementing."
+          "description": "Verify /admin and /admin/* routes remain guarded only by the passkey-based AdminRouteGuard and do not introduce any navigation that triggers an Internet Identity login flow."
         }
       ]
     }

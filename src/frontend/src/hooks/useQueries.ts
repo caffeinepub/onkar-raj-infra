@@ -24,12 +24,16 @@ export function useAddProduct() {
   return useMutation({
     mutationFn: async (product: Product) => {
       if (!actor) throw new Error('Actor not available');
-      const passkey = adminSession.getPasskey();
-      if (!passkey) throw new Error('Admin passkey not available');
-      return actor.addProduct(product, passkey);
+      if (!adminSession.isUnlocked()) throw new Error('Admin session not unlocked');
+      return actor.addProduct(product);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+    onError: (error: any) => {
+      if (error.message && error.message.includes('Unauthorized')) {
+        adminSession.clear();
+      }
     },
   });
 }
@@ -42,11 +46,47 @@ export function useGetAllEnquiries() {
     queryKey: ['enquiries'],
     queryFn: async () => {
       if (!actor) return [];
-      const passkey = adminSession.getPasskey();
-      if (!passkey) throw new Error('Admin passkey not available');
-      return actor.getAllEnquiries(passkey);
+      if (!adminSession.isUnlocked()) throw new Error('Admin session not unlocked');
+      return actor.getAllEnquiries();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && adminSession.isUnlocked(),
+    retry: false,
+  });
+}
+
+export function useConfirmEnquiry() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (enquiryId: string) => {
+      // Backend does not yet support confirm/reject operations
+      // This is a placeholder that simulates success
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('Confirm enquiry:', enquiryId);
+      // In a real implementation, this would call a backend method
+      throw new Error('Confirm functionality not yet implemented in backend');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['enquiries'] });
+    },
+  });
+}
+
+export function useRejectEnquiry() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (enquiryId: string) => {
+      // Backend does not yet support confirm/reject operations
+      // This is a placeholder that simulates success
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('Reject enquiry:', enquiryId);
+      // In a real implementation, this would call a backend method
+      throw new Error('Reject functionality not yet implemented in backend');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['enquiries'] });
+    },
   });
 }
 
@@ -69,11 +109,11 @@ export function useGetAllFeedback() {
     queryKey: ['feedback'],
     queryFn: async () => {
       if (!actor) return [];
-      const passkey = adminSession.getPasskey();
-      if (!passkey) throw new Error('Admin passkey not available');
-      return actor.getAllFeedback(passkey);
+      if (!adminSession.isUnlocked()) throw new Error('Admin session not unlocked');
+      return actor.getAllFeedback();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && adminSession.isUnlocked(),
+    retry: false,
   });
 }
 
@@ -96,21 +136,25 @@ export function useGetAllMessages() {
     queryKey: ['messages'],
     queryFn: async () => {
       if (!actor) return [];
-      const passkey = adminSession.getPasskey();
-      if (!passkey) throw new Error('Admin passkey not available');
-      return actor.getAllMessages(passkey);
+      if (!adminSession.isUnlocked()) throw new Error('Admin session not unlocked');
+      return actor.getAllMessages();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && adminSession.isUnlocked(),
+    retry: false,
   });
 }
 
 export function useSendMessage() {
   const { actor } = useActor();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (message: Message) => {
       if (!actor) throw new Error('Actor not available');
       return actor.sendMessage(message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
     },
   });
 }
@@ -136,12 +180,16 @@ export function useUpdateSiteSettings() {
   return useMutation({
     mutationFn: async (settings: SiteSettings) => {
       if (!actor) throw new Error('Actor not available');
-      const passkey = adminSession.getPasskey();
-      if (!passkey) throw new Error('Admin passkey not available');
-      return actor.updateSiteSettings(settings, passkey);
+      if (!adminSession.isUnlocked()) throw new Error('Admin session not unlocked');
+      return actor.updateSiteSettings(settings);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
+    },
+    onError: (error: any) => {
+      if (error.message && error.message.includes('Unauthorized')) {
+        adminSession.clear();
+      }
     },
   });
 }

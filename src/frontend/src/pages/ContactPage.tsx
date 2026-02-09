@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useGetSiteSettings } from '../hooks/useQueries';
+import { useGetSiteSettings, useSendMessage } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -7,14 +7,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Mail, Phone, MapPin, Loader2 } from 'lucide-react';
+import type { Message } from '../backend';
 
 export default function ContactPage() {
   const { data: settings } = useGetSiteSettings();
+  const sendMessage = useSendMessage();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
-  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     document.title = 'Contact Us - Onkar Raj Infra';
@@ -23,24 +25,32 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim() || !phone.trim() || !email.trim() || !message.trim()) {
+    if (!name.trim() || !phone.trim() || !email.trim() || !subject.trim() || !message.trim()) {
       toast.error('Please fill in all fields');
       return;
     }
 
-    setSubmitting(true);
     try {
-      // Simulate submission - in real implementation, this would call a backend method
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const messageData: Message = {
+        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        subject: subject.trim(),
+        message: message.trim(),
+        timestamp: BigInt(Date.now()),
+      };
+
+      await sendMessage.mutateAsync(messageData);
       toast.success('Message sent successfully! We will get back to you soon.');
       setName('');
       setPhone('');
       setEmail('');
+      setSubject('');
       setMessage('');
     } catch (error) {
+      console.error('Error sending message:', error);
       toast.error('Failed to send message. Please try again.');
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -72,6 +82,7 @@ export default function ContactPage() {
                     placeholder="Your name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -82,6 +93,7 @@ export default function ContactPage() {
                     placeholder="Your phone number"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -92,6 +104,17 @@ export default function ContactPage() {
                     placeholder="your.email@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="subject">Subject</Label>
+                  <Input
+                    id="subject"
+                    placeholder="Subject of your message"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -102,10 +125,11 @@ export default function ContactPage() {
                     rows={5}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
+                    required
                   />
                 </div>
-                <Button type="submit" disabled={submitting} className="w-full">
-                  {submitting ? (
+                <Button type="submit" disabled={sendMessage.isPending} className="w-full">
+                  {sendMessage.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Sending...
@@ -128,9 +152,9 @@ export default function ContactPage() {
                 <div className="flex items-start gap-3">
                   <MapPin className="mt-1 h-5 w-5 text-primary" />
                   <div>
-                    <p className="font-medium">Onkar Raj Infra</p>
+                    <p className="font-medium">Location</p>
                     <p className="text-sm text-muted-foreground">
-                      {settings?.contactDetails || 'Contact details will be updated soon'}
+                      {settings?.contactLocation || 'Location information will be updated soon'}
                     </p>
                   </div>
                 </div>
@@ -138,14 +162,18 @@ export default function ContactPage() {
                   <Phone className="mt-1 h-5 w-5 text-primary" />
                   <div>
                     <p className="font-medium">Phone</p>
-                    <p className="text-sm text-muted-foreground">Available on request</p>
+                    <p className="text-sm text-muted-foreground">
+                      {settings?.contactPhone || 'Phone number will be updated soon'}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Mail className="mt-1 h-5 w-5 text-primary" />
                   <div>
                     <p className="font-medium">Email</p>
-                    <p className="text-sm text-muted-foreground">Available on request</p>
+                    <p className="text-sm text-muted-foreground">
+                      {settings?.contactEmail || 'Email address will be updated soon'}
+                    </p>
                   </div>
                 </div>
               </CardContent>

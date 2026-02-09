@@ -14,7 +14,9 @@ export default function AdminSettingsPanel() {
   const updateSettings = useUpdateSiteSettings();
 
   const [certifications, setCertifications] = useState('');
-  const [contactDetails, setContactDetails] = useState('');
+  const [contactLocation, setContactLocation] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
   const [googleMapEmbed, setGoogleMapEmbed] = useState('');
   const [whatsappEnabled, setWhatsappEnabled] = useState(false);
   const [whatsappPhone, setWhatsappPhone] = useState('');
@@ -24,7 +26,9 @@ export default function AdminSettingsPanel() {
   useEffect(() => {
     if (settings) {
       setCertifications(settings.certifications || '');
-      setContactDetails(settings.contactDetails || '');
+      setContactLocation(settings.contactLocation || '');
+      setContactEmail(settings.contactEmail || '');
+      setContactPhone(settings.contactPhone || '');
       setGoogleMapEmbed(settings.googleMapEmbed || '');
       setWhatsappEnabled(!!settings.whatsappConfig);
       setWhatsappPhone(settings.whatsappConfig?.phoneNumber || '');
@@ -57,7 +61,9 @@ export default function AdminSettingsPanel() {
       await updateSettings.mutateAsync({
         companyName: settings.companyName,
         certifications: certifications.trim(),
-        contactDetails: contactDetails.trim(),
+        contactLocation: contactLocation.trim(),
+        contactEmail: contactEmail.trim(),
+        contactPhone: contactPhone.trim(),
         googleMapEmbed: googleMapEmbed.trim(),
         whatsappConfig: whatsappEnabled && whatsappPhone.trim()
           ? {
@@ -105,16 +111,40 @@ export default function AdminSettingsPanel() {
 
           <Separator />
 
-          <div className="space-y-2">
-            <Label htmlFor="contactDetails">Contact Details</Label>
-            <Textarea
-              id="contactDetails"
-              placeholder="Address, phone, email..."
-              value={contactDetails}
-              onChange={(e) => setContactDetails(e.target.value)}
-              rows={3}
-            />
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Contact Details</h3>
+            <div className="space-y-2">
+              <Label htmlFor="contactLocation">Location</Label>
+              <Input
+                id="contactLocation"
+                placeholder="e.g., 123 Main Street, City, State"
+                value={contactLocation}
+                onChange={(e) => setContactLocation(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contactEmail">Email</Label>
+              <Input
+                id="contactEmail"
+                type="email"
+                placeholder="e.g., contact@company.com"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contactPhone">Phone Number</Label>
+              <Input
+                id="contactPhone"
+                type="tel"
+                placeholder="e.g., +911234567890"
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+              />
+            </div>
           </div>
+
+          <Separator />
 
           <div className="space-y-2">
             <Label htmlFor="googleMapEmbed">Google Maps Embed Code</Label>

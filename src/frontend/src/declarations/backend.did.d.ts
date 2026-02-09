@@ -54,11 +54,13 @@ export interface Product {
 }
 export interface SiteSettings {
   'googleMapEmbed' : string,
+  'contactLocation' : string,
   'whatsappConfig' : [] | [WhatsAppConfig],
+  'contactEmail' : string,
   'companyName' : string,
   'pricingTable' : Array<[string, number]>,
   'certifications' : string,
-  'contactDetails' : string,
+  'contactPhone' : string,
 }
 export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
@@ -96,11 +98,11 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
-  'addProduct' : ActorMethod<[Product, string], undefined>,
+  'addProduct' : ActorMethod<[Product], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
-  'getAllEnquiries' : ActorMethod<[string], Array<Enquiry>>,
-  'getAllFeedback' : ActorMethod<[string], Array<Feedback>>,
-  'getAllMessages' : ActorMethod<[string], Array<Message>>,
+  'getAllEnquiries' : ActorMethod<[], Array<Enquiry>>,
+  'getAllFeedback' : ActorMethod<[], Array<Feedback>>,
+  'getAllMessages' : ActorMethod<[], Array<Message>>,
   'getAllProducts' : ActorMethod<[], Array<Product>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
@@ -113,7 +115,7 @@ export interface _SERVICE {
   'sendMessage' : ActorMethod<[Message], undefined>,
   'submitEnquiry' : ActorMethod<[Enquiry], undefined>,
   'submitFeedback' : ActorMethod<[Feedback], undefined>,
-  'updateSiteSettings' : ActorMethod<[SiteSettings, string], undefined>,
+  'updateSiteSettings' : ActorMethod<[SiteSettings], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];
