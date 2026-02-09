@@ -1,6 +1,5 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from '@tanstack/react-router';
-import { useInternetIdentity } from '../../hooks/useInternetIdentity';
 import { adminSession } from '../../utils/adminSession';
 
 interface AdminRouteGuardProps {
@@ -10,8 +9,8 @@ interface AdminRouteGuardProps {
 export default function AdminRouteGuard({ children }: AdminRouteGuardProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { identity } = useInternetIdentity();
   const [isUnlocked, setIsUnlocked] = useState(adminSession.isUnlocked());
+  const [hasRedirected, setHasRedirected] = useState(false);
 
   // Subscribe to session changes
   useEffect(() => {
@@ -21,18 +20,27 @@ export default function AdminRouteGuard({ children }: AdminRouteGuardProps) {
     return unsubscribe;
   }, []);
 
-  // Redirect to admin login if not authenticated or not unlocked
+  // Redirect to admin login if not unlocked
   useEffect(() => {
-    if (!identity || !isUnlocked) {
+    if (!isUnlocked && !hasRedirected) {
+      setHasRedirected(true);
       navigate({ 
         to: '/admin/login',
-        search: { returnPath: location.pathname }
+        search: { returnPath: location.pathname },
+        replace: true,
       });
     }
-  }, [identity, isUnlocked, navigate, location.pathname]);
+  }, [isUnlocked, navigate, location.pathname, hasRedirected]);
 
-  // If session is unlocked AND user is authenticated, render admin content
-  if (isUnlocked && identity) {
+  // Reset redirect flag when unlocked
+  useEffect(() => {
+    if (isUnlocked) {
+      setHasRedirected(false);
+    }
+  }, [isUnlocked]);
+
+  // If session is unlocked, render admin content
+  if (isUnlocked) {
     return <>{children}</>;
   }
 

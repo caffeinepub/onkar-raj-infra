@@ -1,13 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Fix unauthorized admin access by adding a dedicated admin login flow that requires Internet Identity login followed by an admin passkey check via `authenticateAdmin("Ved_ansh@04")`, with clear error handling and session persistence.
+**Goal:** Fix the failing admin passkey flow by rebuilding a dedicated, passkey-only `/admin/login` that unlocks admin access once per browser session, without changing the existing admin dashboard UI.
 
 **Planned changes:**
-- Add/adjust the `/admin*` route guard to show a dedicated admin login screen instead of rendering admin pages when not unlocked.
-- Admin login flow: require Internet Identity login first, then prompt for the admin code and only submit verification after a code is entered.
-- On admin code submit, call backend `authenticateAdmin(passkey)`; unlock admin routes only on success, otherwise show inline error text (e.g., “Invalid passkey” / clear “not authenticated/actor not available” messaging).
-- Backend: ensure `authenticateAdmin` rejects any passkey other than exactly `Ved_ansh@04` with a clear error.
-- Persist an “admin unlocked” flag for the current browser session; clear it on “Admin Logout” and also clear it when any admin-only API call returns Unauthorized (returning the user to the admin login screen on next admin navigation).
+- Rebuild `/admin/login` to use only the hard-coded passkey `vEDANSH468` (no Internet Identity login) and, on success, unlock admin access via the existing `sessionStorage`-based admin session mechanism.
+- Update admin route protection to rely only on the admin session unlock state: redirect locked sessions to `/admin/login` with a `returnPath`, and keep all admin dashboard pages/layout unchanged when unlocked.
+- Refactor passkey verification logic to remove Internet Identity dependency and ensure consistent behavior: unlock on success; clear the admin session and show an error on any failure.
 
-**User-visible outcome:** Visiting any `/admin*` page prompts the user to sign in with Internet Identity, then enter the admin code; after successful verification, admin pages remain accessible for the browser session (including refresh) until admin logout or an Unauthorized response forces re-locking.
+**User-visible outcome:** Admin users can visit `/admin/login`, enter the passkey `vEDANSH468` to access the existing admin dashboard for the current browser session, and are redirected back to the originally requested admin page; incorrect/empty passkeys show an error and do not grant access.

@@ -1,8 +1,8 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import { useInternetIdentity } from './useInternetIdentity';
 import type { UserProfile } from '../backend';
 import { adminSession } from '../utils/adminSession';
+import { verifyPasskey } from '../utils/adminCredentials';
 
 export function useIsCallerAdmin() {
   // This hook is deprecated for admin route guarding
@@ -18,58 +18,32 @@ export function useIsCallerAdmin() {
 }
 
 export function useVerifyAdminPasskey() {
-  const { actor } = useActor();
-  const { identity } = useInternetIdentity();
-
   return useMutation({
     mutationFn: async (passkey: string) => {
-      // Check if user is authenticated first
-      if (!identity) {
-        adminSession.clear();
-        throw new Error('Please log in with Internet Identity first');
-      }
-
-      // Check if actor is available
-      if (!actor) {
-        adminSession.clear();
-        throw new Error('Connection not available. Please try again.');
-      }
-
-      // Validate passkey input
-      const trimmedPasskey = passkey.trim();
-      if (!trimmedPasskey) {
-        adminSession.clear();
-        throw new Error('Passkey is required');
-      }
-
       try {
-        // Call backend to authenticate and grant admin role
-        await actor.authenticateAdmin(trimmedPasskey);
+        // Validate passkey input
+        const trimmedPasskey = passkey.trim();
+        if (!trimmedPasskey) {
+          adminSession.clear();
+          throw new Error('Passkey is required');
+        }
+
+        // Verify passkey locally (frontend-only, no backend or Internet Identity)
+        const isValid = verifyPasskey(trimmedPasskey);
         
-        // Backend confirmed admin access, mark session as unlocked
+        if (!isValid) {
+          adminSession.clear();
+          throw new Error('Invalid passkey');
+        }
+
+        // Passkey is correct, unlock admin session
         adminSession.setUnlocked();
-        
-        // Emit session change event
-        adminSession.notifyChange();
         
         return true;
       } catch (error: any) {
-        // Clear session on any failure
+        // Ensure session is cleared on any error path
         adminSession.clear();
-        
-        // Provide user-friendly error messages
-        const errorMessage = error.message || '';
-        
-        if (errorMessage.includes('Invalid passkey')) {
-          throw new Error('Invalid passkey');
-        }
-        
-        if (errorMessage.includes('Unauthorized')) {
-          throw new Error('Unauthorized access');
-        }
-        
-        // Generic error for any other failure
-        throw new Error('Authentication failed. Please try again.');
+        throw error;
       }
     },
   });

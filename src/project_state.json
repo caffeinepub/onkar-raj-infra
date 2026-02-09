@@ -1,35 +1,34 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Implement passkey-based admin access flow; fix unauthorized access by adding an admin login screen that calls authenticateAdmin using an admin code.",
+  "summary": "Build a dedicated admin page login gate using a hard-coded passkey (vEDANSH468), required once per session, while keeping the existing admin page UI unchanged.",
   "architectural_notes": [
-    "Admin authorization requires calling backend authenticateAdmin(adminCode) after passkey login to assign admin role.",
-    "Admin login screen will collect the admin code (Ved_ansh@04) and trigger authenticateAdmin to activate admin access."
+    "Admin authentication is a single hard-coded passkey (vEDANSH468), validated once per session, gating access to the existing admin page without changing its UI."
   ],
   "known_issues": [
-    "Passkey login currently results in 'Unauthorized' on admin pages because authenticateAdmin is not being called / admin role not assigned."
+    "Current passkey flow fails during passkey entry for admin login (Version 21)."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-ensure-the-admin-route-guard-presents-a-dedicated-admin-login-screen-that-1-requires-the-user-to-log-in-with-internet-identity-and-then-2-prompts-for-the-admin-code-and-on-submit-calls-the-backend-method-authenticateadmin-passkey-to-grant-the-logged-in-principal-admin-rights",
-      "title": "Ensure the admin route guard presents a dedicated admin login screen that (1) requires the user to log in with Internet Identity and then (2) prompts for the admin code, and on submit calls the backend method authenticateAdmin(passkey) to grant the logged-in principal admin rights.",
+      "id": "feature-rebuild-the-admin-login-flow-to-be-passkey-only-no-internet-identity-login-using-the-hard-coded-passkey-vedansh468-and-unlock-admin-access-once-per-browser-session-via-the-existing-sessionstorage-based-admin-session-mechanism",
+      "title": "Rebuild the /admin/login flow to be passkey-only (no Internet Identity login) using the hard-coded passkey \"vEDANSH468\", and unlock admin access once per browser session via the existing sessionStorage-based admin session mechanism.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-use-the-admin-code-value-exactly-as-provided-ved-ansh-04-for-backend-verification-and-ensure-frontend-error-handling-maps-backend-failures-e-g-invalid-passkey-unauthorized-into-clear-english-error-messages-in-the-admin-login-screen",
-      "title": "Use the admin code value exactly as provided (\"Ved_ansh@04\") for backend verification, and ensure frontend error handling maps backend failures (e.g., \"Invalid passkey\" / \"Unauthorized\") into clear, English error messages in the admin login screen.",
+      "id": "feature-update-admin-route-protection-to-rely-only-on-the-admin-session-unlock-state-sessionstorage-and-redirect-unauthenticated-admin-sessions-to-admin-login-while-keeping-all-admin-dashboard-pages-and-layout-unchanged",
+      "title": "Update admin route protection to rely only on the admin session unlock state (sessionStorage) and redirect unauthenticated admin sessions to /admin/login, while keeping all admin dashboard pages and layout unchanged.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-after-successful-admin-authentication-persist-an-admin-unlocked-session-flag-for-the-current-browser-session-and-automatically-clear-it-on-admin-logout-and-on-any-backend-unauthorized-response-from-admin-only-api-calls",
-      "title": "After successful admin authentication, persist an “admin unlocked” session flag for the current browser session and automatically clear it on admin logout and on any backend Unauthorized response from admin-only API calls.",
+      "id": "feature-refactor-the-admin-passkey-verification-logic-to-remove-the-internet-identity-dependency-from-the-passkey-verification-hook-and-ensure-consistent-session-unlock-clear-behavior-unlock-on-success-clear-on-any-failure",
+      "title": "Refactor the admin passkey verification logic to remove the Internet Identity dependency from the passkey verification hook and ensure consistent session unlock/clear behavior (unlock on success; clear on any failure).",
       "reqIds": [
         "REQ-3"
       ],
@@ -39,12 +38,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Add admin login screen (admin code: Ved_ansh@04) that triggers authenticateAdmin after passkey login to resolve unauthorized access",
+      "summary": "Rebuild admin login using hard-coded passkey \"vEDANSH468\" on a dedicated admin page; require passkey once per session; keep existing admin page UI unchanged",
       "reqIds": [],
       "status": "in_progress"
     }
   ],
-  "projectName": "Fix admin unauthorized access by adding admin code login prompt that calls authenticateAdmin(\"Ved_ansh@04\")",
+  "projectName": "Fix failing admin passkey by rebuilding dedicated passkey-only admin login (once per session) without changing admin dashboard UI",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

@@ -28,8 +28,8 @@ export function useAddProduct() {
       try {
         return await actor.addProduct(product);
       } catch (error: any) {
+        // Transform backend errors into user-friendly messages
         if (error.message && error.message.includes('Unauthorized')) {
-          adminSession.clear();
           throw new Error('Unauthorized: Admin access required');
         }
         throw error;
@@ -55,11 +55,11 @@ export function useGetAllEnquiries() {
         // Sort by timestamp descending (newest first)
         return result.sort((a, b) => Number(b.timestamp - a.timestamp));
       } catch (error: any) {
+        // Transform backend errors into user-friendly messages
         if (error.message && error.message.includes('Unauthorized')) {
-          adminSession.clear();
-          throw new Error('Unauthorized: Admin access required');
+          throw new Error('You do not have permission to view enquiries. Please verify your passkey.');
         }
-        throw error;
+        throw new Error('Failed to load enquiries. Please try again.');
       }
     },
     enabled: !!actor && !isFetching && adminSession.isUnlocked(),
@@ -151,11 +151,11 @@ export function useGetAllFeedback() {
         // Sort by timestamp descending (newest first)
         return result.sort((a, b) => Number(b.timestamp - a.timestamp));
       } catch (error: any) {
+        // Transform backend errors into user-friendly messages
         if (error.message && error.message.includes('Unauthorized')) {
-          adminSession.clear();
-          throw new Error('Unauthorized: Admin access required');
+          throw new Error('You do not have permission to view feedback. Please verify your passkey.');
         }
-        throw error;
+        throw new Error('Failed to load feedback. Please try again.');
       }
     },
     enabled: !!actor && !isFetching && adminSession.isUnlocked(),
@@ -165,11 +165,22 @@ export function useGetAllFeedback() {
 
 export function useSubmitFeedback() {
   const { actor } = useActor();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (feedback: Feedback) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.submitFeedback(feedback);
+      try {
+        await actor.submitFeedback(feedback);
+      } catch (error: any) {
+        throw new Error('Failed to submit feedback. Please try again.');
+      }
+    },
+    onSuccess: () => {
+      // Invalidate admin feedback if session is unlocked
+      if (adminSession.isUnlocked()) {
+        queryClient.invalidateQueries({ queryKey: ['feedback'] });
+      }
     },
   });
 }
@@ -188,11 +199,11 @@ export function useGetAllMessages() {
         // Sort by timestamp descending (newest first)
         return result.sort((a, b) => Number(b.timestamp - a.timestamp));
       } catch (error: any) {
+        // Transform backend errors into user-friendly messages
         if (error.message && error.message.includes('Unauthorized')) {
-          adminSession.clear();
-          throw new Error('Unauthorized: Admin access required');
+          throw new Error('You do not have permission to view messages. Please verify your passkey.');
         }
-        throw error;
+        throw new Error('Failed to load messages. Please try again.');
       }
     },
     enabled: !!actor && !isFetching && adminSession.isUnlocked(),
@@ -210,7 +221,6 @@ export function useSendMessage() {
       try {
         await actor.sendMessage(message);
       } catch (error: any) {
-        // Transform backend errors into user-friendly messages
         throw new Error('Failed to send message. Please try again.');
       }
     },
@@ -248,8 +258,8 @@ export function useUpdateSiteSettings() {
       try {
         return await actor.updateSiteSettings(settings);
       } catch (error: any) {
+        // Transform backend errors into user-friendly messages
         if (error.message && error.message.includes('Unauthorized')) {
-          adminSession.clear();
           throw new Error('Unauthorized: Admin access required');
         }
         throw error;
@@ -268,8 +278,7 @@ export function useGetPriceForDiameter(diameter: string) {
   return useQuery<number | null>({
     queryKey: ['price', diameter],
     queryFn: async () => {
-      if (!actor) return null;
-      if (!diameter) return null;
+      if (!actor || !diameter) return null;
       return actor.getPriceForDiameter(diameter);
     },
     enabled: !!actor && !isFetching && !!diameter,

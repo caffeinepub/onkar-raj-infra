@@ -2,12 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-ensure-the-admin-route-guard-presents-a-dedicated-admin-login-screen-that-1-requires-the-user-to-log-in-with-internet-identity-and-then-2-prompts-for-the-admin-code-and-on-submit-calls-the-backend-method-authenticateadmin-passkey-to-grant-the-logged-in-principal-admin-rights",
-      "featureTitle": "Ensure the admin route guard presents a dedicated admin login screen that (1) requires the user to log in with Internet Identity and then (2) prompts for the admin code, and on submit calls the backend method authenticateAdmin(passkey) to grant the logged-in principal admin rights.",
+      "featureId": "feature-rebuild-the-admin-login-flow-to-be-passkey-only-no-internet-identity-login-using-the-hard-coded-passkey-vedansh468-and-unlock-admin-access-once-per-browser-session-via-the-existing-sessionstorage-based-admin-session-mechanism",
+      "featureTitle": "Rebuild the /admin/login flow to be passkey-only (no Internet Identity login) using the hard-coded passkey \"vEDANSH468\", and unlock admin access once per browser session via the existing sessionStorage-based admin session mechanism.",
       "files": [
-        "frontend/src/App.tsx",
         "frontend/src/pages/admin/AdminLoginPage.tsx",
-        "frontend/src/pages/admin/AdminRouteGuard.tsx"
+        "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -24,11 +23,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-use-the-admin-code-value-exactly-as-provided-ved-ansh-04-for-backend-verification-and-ensure-frontend-error-handling-maps-backend-failures-e-g-invalid-passkey-unauthorized-into-clear-english-error-messages-in-the-admin-login-screen",
-      "featureTitle": "Use the admin code value exactly as provided (\"Ved_ansh@04\") for backend verification, and ensure frontend error handling maps backend failures (e.g., \"Invalid passkey\" / \"Unauthorized\") into clear, English error messages in the admin login screen.",
+      "featureId": "feature-update-admin-route-protection-to-rely-only-on-the-admin-session-unlock-state-sessionstorage-and-redirect-unauthenticated-admin-sessions-to-admin-login-while-keeping-all-admin-dashboard-pages-and-layout-unchanged",
+      "featureTitle": "Update admin route protection to rely only on the admin session unlock state (sessionStorage) and redirect unauthenticated admin sessions to /admin/login, while keeping all admin dashboard pages and layout unchanged.",
       "files": [
-        "frontend/src/hooks/useAuthz.ts",
-        "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx"
+        "frontend/src/pages/admin/AdminRouteGuard.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -45,13 +43,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-after-successful-admin-authentication-persist-an-admin-unlocked-session-flag-for-the-current-browser-session-and-automatically-clear-it-on-admin-logout-and-on-any-backend-unauthorized-response-from-admin-only-api-calls",
-      "featureTitle": "After successful admin authentication, persist an “admin unlocked” session flag for the current browser session and automatically clear it on admin logout and on any backend Unauthorized response from admin-only API calls.",
+      "featureId": "feature-refactor-the-admin-passkey-verification-logic-to-remove-the-internet-identity-dependency-from-the-passkey-verification-hook-and-ensure-consistent-session-unlock-clear-behavior-unlock-on-success-clear-on-any-failure",
+      "featureTitle": "Refactor the admin passkey verification logic to remove the Internet Identity dependency from the passkey verification hook and ensure consistent session unlock/clear behavior (unlock on success; clear on any failure).",
       "files": [
-        "frontend/src/components/auth/LoginButton.tsx",
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/admin/AdminLayoutPage.tsx",
-        "frontend/src/utils/adminSession.ts"
+        "frontend/src/hooks/useAuthz.ts"
       ],
       "components": [
         "authorization@4.0.0",

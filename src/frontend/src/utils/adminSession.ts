@@ -24,6 +24,15 @@ export const adminSession = {
     this.clear();
   },
 
+  // Idempotent clear - safe to call multiple times
+  safeClear(): void {
+    try {
+      this.clear();
+    } catch (error) {
+      console.error('Error clearing admin session:', error);
+    }
+  },
+
   // Notify listeners that session state has changed
   notifyChange(): void {
     if (typeof window === 'undefined') return;

@@ -1,85 +1,73 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Admin unlock flow: dedicated admin login screen + passkey verification + session persistence",
+  "title": "Passkey-only admin login (sessionStorage) and admin route guarding without Internet Identity",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Add a dedicated admin login screen that enforces Internet Identity login first, then prompts for admin code and calls authenticateAdmin(passkey) to unlock /admin* routes.",
+      "summary": "Rebuild /admin/login to be passkey-only using hard-coded passkey and unlock admin once per browser session via sessionStorage.",
       "acceptanceCriteria": [
-        "When visiting any /admin* route while logged out, the user is prompted to log in with Internet Identity first.",
-        "After Internet Identity login succeeds, the UI prompts for the admin code (passkey) and does not attempt verification before a code is entered.",
-        "Submitting the admin code triggers a call to authenticateAdmin(passkey).",
-        "If authenticateAdmin succeeds, the admin content renders and the user can navigate to /admin/products, /admin/enquiries, /admin/feedback, and /admin/messages without seeing Unauthorized errors.",
-        "If authenticateAdmin fails (e.g., wrong code), an inline error is displayed and admin content remains locked."
+        "Visiting /admin/login shows the existing passkey prompt UI and does not trigger Internet Identity login.",
+        "Entering the exact passkey \"vEDANSH468\" unlocks the admin session and redirects to the requested admin returnPath (or /admin/products when none is provided).",
+        "Entering an incorrect/empty passkey shows a clear error message and does not unlock the admin session.",
+        "After unlocking, refreshing the page keeps admin access until the browser session ends (sessionStorage cleared) or the user performs Admin Logout."
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/admin/AdminLoginPage.tsx",
-          "operation": "create",
-          "description": "Create a dedicated Admin Login page that renders the existing AdminTwoStepAccessPrompt (shadcn-ui components are already used inside it; do not edit frontend/src/components/ui). The page should: (a) require Internet Identity login first, (b) then allow passkey entry, and (c) on submit call authenticateAdmin(passkey) via existing auth hooks. Use the authorization component’s frontend guidance (Internet Identity-first gating and graceful auth error handling) to structure the flow. Verify the component's usage instructions before implementing."
+          "operation": "modify",
+          "description": "Remove all Internet Identity and actor-readiness steps from the admin login flow; keep rendering the existing AdminTwoStepAccessPrompt UI, but make submit perform passkey-only verification via useVerifyAdminPasskey and on success redirect to returnPath (or /admin/products). Ensure no background login is triggered on page load and that already-unlocked sessions immediately redirect."
         },
         {
-          "path": "frontend/src/pages/admin/AdminRouteGuard.tsx",
+          "path": "frontend/src/utils/adminCredentials.ts",
           "operation": "modify",
-          "description": "Update the admin route guard to redirect unauthorized users to the dedicated admin login screen (e.g., /admin/login) while preserving the originally requested /admin* path for post-unlock navigation. Ensure admin content only renders when (1) Internet Identity is authenticated and (2) the admin session is unlocked. Use the authorization component’s frontend guidance for enforcing login before restricted data is shown. Verify the component's usage instructions before implementing."
+          "description": "Confirm the hard-coded passkey constant remains exactly \"vEDANSH468\" and keep verification strictly local (trim + exact match) to support passkey-only admin unlock."
         },
         {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
           "operation": "modify",
-          "description": "Wire the new /admin/login route into the router so it is reachable as the dedicated admin login screen, and ensure /admin, /admin/products, /admin/enquiries, /admin/feedback, and /admin/messages remain protected by AdminRouteGuard (and do not create orphaned pages)."
+          "description": "Keep UI structure unchanged; ensure user-facing error messages remain clear English for empty/invalid passkey cases and that it properly displays errors thrown by the passkey verification flow (no Internet Identity-related messaging)."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Ensure passkey verification expects the exact code value for backend verification and map backend failures into clear English errors on the admin login screen.",
+      "summary": "Update admin route protection to rely only on sessionStorage-based admin unlock state and redirect locked sessions to /admin/login with returnPath.",
       "acceptanceCriteria": [
-        "Backend authenticateAdmin rejects any passkey other than \"Ved_ansh@04\" with a clear error (e.g., \"Invalid passkey\").",
-        "Frontend displays \"Invalid passkey\" when the backend rejects the code, and does not unlock the admin session on failure.",
-        "Frontend displays a clear English message when the actor is not available or the user is not authenticated yet."
+        "When admin session is locked, navigating directly to /admin, /admin/products, /admin/enquiries, /admin/feedback, or /admin/messages redirects to /admin/login with returnPath set to the originally requested path.",
+        "When admin session is unlocked, the admin routes render the current AdminLayoutPage and existing admin UI exactly as before (no layout/tab/content changes)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useAuthz.ts",
+          "path": "frontend/src/pages/admin/AdminRouteGuard.tsx",
           "operation": "modify",
-          "description": "Refine useVerifyAdminPasskey error handling so backend failures map to clear, English messages suitable for the admin login screen: show \"Invalid passkey\" on invalid-code failures (the correct code is exactly \"Ved_ansh@04\"), show a clear message for \"Unauthorized\" responses, and show a clear message when the actor is not available / user is not authenticated yet. Ensure failures never set the unlocked session flag. Use the authorization component’s frontend error-handling guidance for authorization traps and unauthenticated states. Verify the component's usage instructions before implementing."
+          "description": "Refactor the guard to depend only on adminSession.isUnlocked() (sessionStorage) and its subscribe notifications; remove Internet Identity dependency and initialization gating. When locked, redirect to /admin/login with returnPath=location.pathname; when unlocked, render children without altering AdminLayoutPage or admin page UI."
         },
         {
-          "path": "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Update the prompt UI to display the refined, user-friendly error messages coming from the auth hook (inline) and ensure it never attempts verification before a non-empty passkey is entered. Keep using existing shadcn/ui components without modifying frontend/src/components/ui (read-only)."
+          "description": "Verify all admin routes (/admin, /admin/products, /admin/enquiries, /admin/feedback, /admin/messages) remain wrapped by AdminRouteGuard and that /admin/login remains unguarded; keep route structure and AdminLayoutPage usage unchanged."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Persist an admin-unlocked flag for the browser session and clear it on admin logout and on any Unauthorized response from admin-only API calls.",
+      "summary": "Refactor admin passkey verification hook to remove Internet Identity dependency and enforce consistent session unlock/clear behavior.",
       "acceptanceCriteria": [
-        "After successful verification, refreshing the page during the same browser session keeps admin pages accessible without re-entering the code (until session ends or logout).",
-        "Clicking “Admin Logout” clears the admin unlocked session state and returning to /admin* shows the admin login screen again.",
-        "If any admin data-fetch call returns an Unauthorized error, the app clears the admin unlocked session state and returns to the admin login screen on the next admin navigation."
+        "Admin passkey verification works without requiring an Internet Identity identity to be present.",
+        "On successful verification, adminSession.setUnlocked() is called and the UI proceeds to the admin dashboard.",
+        "On any verification error (invalid passkey, missing actor/connection, unexpected exception), adminSession.clear() is called and the user remains on the login prompt with an error shown."
       ],
       "file_operations": [
         {
+          "path": "frontend/src/hooks/useAuthz.ts",
+          "operation": "modify",
+          "description": "Rewrite useVerifyAdminPasskey to be passkey-only: remove Internet Identity and actor/back-end authenticateAdmin dependency; validate input (trim, non-empty), verify via verifyPasskey, and call adminSession.setUnlocked() on success. On any failure/exception, call adminSession.clear() and throw an English error suitable for AdminTwoStepAccessPrompt to display."
+        },
+        {
           "path": "frontend/src/utils/adminSession.ts",
           "operation": "modify",
-          "description": "Harden the sessionStorage-backed admin unlocked utilities to support consistent clearing and notification semantics used across the app (unlock persists for the browser session; clear on logout and unauthorized)."
-        },
-        {
-          "path": "frontend/src/pages/admin/AdminLayoutPage.tsx",
-          "operation": "modify",
-          "description": "Ensure “Admin Logout” clears the admin unlocked session state and routes the user to the dedicated admin login screen (or otherwise guarantees the next /admin* navigation shows the login screen), matching the required behavior."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Standardize admin-only React Query hooks/mutations to clear the admin unlocked session state on any backend \"Unauthorized\" failure and ensure subsequent admin navigations return to the admin login screen (the guard should enforce this)."
-        },
-        {
-          "path": "frontend/src/components/auth/LoginButton.tsx",
-          "operation": "modify",
-          "description": "Confirm Internet Identity logout clears the admin unlocked session state for the current browser session and clears cached admin data (query cache) so admin pages remain locked until re-unlocked."
+          "description": "Ensure adminSession behavior is consistent and idempotent for unlock/clear/logout and continues to notify subscribers on state changes, supporting 'unlock once per session' semantics via sessionStorage."
         }
       ]
     }
