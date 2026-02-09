@@ -1,0 +1,49 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Passkey-only admin unlock UI and verification flow",
+  "requirements": [
+    {
+      "id": "REQ-2",
+      "summary": "Convert the admin unlock UI to a single-step passkey prompt (no email step) and allow non-numeric passkeys.",
+      "acceptanceCriteria": [
+        "Navigating to any /admin route while logged in and not yet admin-unlocked shows only one prompt for passkey (no email field, no email step, no back-to-email navigation).",
+        "The passkey input accepts the full string \"Ved_ansh@04\" (letters/symbols) and is not restricted to numeric input (no numeric-only pattern/inputMode constraints).",
+        "On incorrect passkey, the UI shows an English error message and remains on the passkey prompt."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
+          "operation": "modify",
+          "description": "Replace the two-step (email + passkey) flow with a single passkey-only form: remove ALLOWED_EMAILS, remove step state and email form, remove Back button, and update copy to reference passkey-only unlock. Update the passkey Input to accept arbitrary text by removing numeric-only constraints (e.g., inputMode/pattern) while keeping password masking. Ensure incorrect passkey shows a clear English error and keeps the user on the same prompt. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Update the admin guard + verification hook integration to perform passkey-only verification and route to /admin/products on success without false failure messaging.",
+      "acceptanceCriteria": [
+        "Entering the correct passkey \"Ved_ansh@04\" unlocks admin access for the current session and routes the user to /admin/products.",
+        "After successful verification, the admin prompt does not re-appear during the same session while the user remains logged in.",
+        "The message \"Verification failed. Please check your credentials.\" is not shown when the correct passkey is entered."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/admin/AdminRouteGuard.tsx",
+          "operation": "modify",
+          "description": "Update the guard’s verification wiring to pass passkey-only into the prompt and hook: adjust handleVerify signature to accept only passkey (or accept passkey and internally supply an empty email), and ensure successful verification closes the prompt and navigates to /admin/products. Keep existing behavior for non-admin users and logout session clearing unchanged. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useAuthz.ts",
+          "operation": "modify",
+          "description": "Adjust useVerifyAdminCredentials to support passkey-only verification: accept a passkey-only input from callers (or continue using the existing AdminCredentials shape but allow empty email), normalize only what is needed, and ensure that on a successful backend response it sets the session unlock flag and refreshes admin status. Ensure error handling does not emit the generic \"Verification failed. Please check your credentials.\" when the backend returns success for the correct passkey. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/utils/adminCredentials.ts",
+          "operation": "modify",
+          "description": "Update credential normalization to be compatible with passkey-only admin unlock (e.g., avoid requiring a meaningful email, and ensure passkey is preserved as-entered aside from trimming). Verify the component's usage instructions before implementing."
+        }
+      ]
+    }
+  ]
+}

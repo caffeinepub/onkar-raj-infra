@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "Implementing an admin-only authentication flow that skips email verification and uses a single static passkey to access /admin, while keeping the existing email verification flow for normal users.",
+  "architectural_notes": [
+    "Admin auth should be separated from normal user auth: admin access uses a single static passkey gate and bypasses email verification, while normal users retain existing verification flow."
+  ],
+  "known_issues": [
+    "Admin login currently shows 'Verification failed. Please check your credentials.' and does not reroute to the email page as expected."
+  ],
+  "isFixRequest": true,
+  "existing_features": [
+    {
+      "id": "feature-update-the-frontend-admin-unlock-ui-to-be-a-single-step-passkey-prompt-only-remove-the-email-screen-step-entirely-and-allow-non-numeric-passkeys-remove-numeric-only-input-constraints",
+      "title": "Update the frontend admin unlock UI to be a single-step passkey prompt only (remove the email screen/step entirely) and allow non-numeric passkeys (remove numeric-only input constraints).",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-frontend-admin-verification-call-path-adminrouteguard-useverifyadmincredentials-to-work-with-passkey-only-admin-verification-and-successfully-navigate-to-admin-products-after-a-correct-passkey-entry-without-showing-verification-failed-please-check-your-credentials-for-the-correct-passkey",
+      "title": "Update the frontend admin verification call path (AdminRouteGuard/useVerifyAdminCredentials) to work with passkey-only admin verification and successfully navigate to /admin/products after a correct passkey entry, without showing \"Verification failed. Please check your credentials.\" for the correct passkey.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Admin login: remove email verification and require only a single static passkey to access /admin (normal users unchanged)",
+      "reqIds": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Update the backend admin verification logic so that admin access to /admin is unlocked using only the static passkey \"Ved_ansh@04\" (no email allowlist check for admin verification).",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Retry build: make /admin unlock passkey-only (remove email step) and update admin passkey",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

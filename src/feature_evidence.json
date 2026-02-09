@@ -1,0 +1,47 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-update-the-frontend-admin-unlock-ui-to-be-a-single-step-passkey-prompt-only-remove-the-email-screen-step-entirely-and-allow-non-numeric-passkeys-remove-numeric-only-input-constraints",
+      "featureTitle": "Update the frontend admin unlock UI to be a single-step passkey prompt only (remove the email screen/step entirely) and allow non-numeric passkeys (remove numeric-only input constraints).",
+      "files": [
+        "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-frontend-admin-verification-call-path-adminrouteguard-useverifyadmincredentials-to-work-with-passkey-only-admin-verification-and-successfully-navigate-to-admin-products-after-a-correct-passkey-entry-without-showing-verification-failed-please-check-your-credentials-for-the-correct-passkey",
+      "featureTitle": "Update the frontend admin verification call path (AdminRouteGuard/useVerifyAdminCredentials) to work with passkey-only admin verification and successfully navigate to /admin/products after a correct passkey entry, without showing \"Verification failed. Please check your credentials.\" for the correct passkey.",
+      "files": [
+        "frontend/src/hooks/useAuthz.ts",
+        "frontend/src/pages/admin/AdminRouteGuard.tsx",
+        "frontend/src/utils/adminCredentials.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

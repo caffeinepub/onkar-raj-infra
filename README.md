@@ -1,2 +1,3 @@
-# onkar-raj-infra
-Exported from Caffeine project: Retry build: make /admin unlock passkey-only (remove email step) and update admin passkey
+## 
+
+To run app build and run docker image: `docker build -t app . docker run -it --network host app`

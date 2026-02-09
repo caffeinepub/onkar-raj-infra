@@ -1,0 +1,70 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-09T08:25:15.783Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 3,
+    "implemented": 2,
+    "items": [
+      {
+        "id": "REQ-1",
+        "summary": "Update the backend admin verification logic so that admin access to /admin is unlocked using only the static passkey \"Ved_ansh@04\" (no email allowlist check for admin verification).",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Update the frontend admin unlock UI to be a single-step passkey prompt only (remove the email screen/step entirely) and allow non-numeric passkeys (remove numeric-only input constraints).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Update the frontend admin verification call path (AdminRouteGuard/useVerifyAdminCredentials) to work with passkey-only admin verification and successfully navigate to /admin/products after a correct passkey entry, without showing \"Verification failed. Please check your credentials.\" for the correct passkey.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/admin/AdminRouteGuard.tsx",
+          "frontend/src/hooks/useAuthz.ts",
+          "frontend/src/utils/adminCredentials.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/admin/AdminRouteGuard.tsx",
+          "frontend/src/hooks/useAuthz.ts",
+          "frontend/src/utils/adminCredentials.ts"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useAuthz.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/admin/AdminRouteGuard.tsx",
+    "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
+    "frontend/src/utils/adminCredentials.ts",
+    "frontend/src/utils/adminSession.ts",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

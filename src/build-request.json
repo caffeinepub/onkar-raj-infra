@@ -1,0 +1,79 @@
+{
+  "kind": "build_request",
+  "title": "Retry build: make /admin unlock passkey-only (remove email step) and update admin passkey",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Update the backend admin verification logic so that admin access to /admin is unlocked using only the static passkey \"Ved_ansh@04\" (no email allowlist check for admin verification).",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "recent-messages"
+        ],
+        "quotes": [
+          "for admin login, remove the email verification and just let there be passkey verification to go to /admin",
+          "new passkey will be Ved_ansh@04",
+          "try to build again"
+        ]
+      },
+      "acceptanceCriteria": [
+        "backend/main.mo no longer rejects admin verification due to email not being in an allowlist",
+        "The configured admin passkey constant used for verification is exactly \"Ved_ansh@04\"",
+        "Calling verifyAdminCredentials with the correct passkey returns true and marks the caller as verified admin for subsequent admin-only methods (e.g., addProduct, getAllEnquiries, updateSiteSettings)."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Update the frontend admin unlock UI to be a single-step passkey prompt only (remove the email screen/step entirely) and allow non-numeric passkeys (remove numeric-only input constraints).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "recent-messages"
+        ],
+        "quotes": [
+          "for admin login, remove the email verification and just let there be passkey verification to go to /admin",
+          "new passkey will be Ved_ansh@04"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Navigating to any /admin route while logged in and not yet admin-unlocked shows only one prompt for passkey (no email field, no email step, no back-to-email navigation).",
+        "The passkey input accepts the full string \"Ved_ansh@04\" (letters/symbols) and is not restricted to numeric input (no numeric-only pattern/inputMode constraints).",
+        "On incorrect passkey, the UI shows an English error message and remains on the passkey prompt."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Update the frontend admin verification call path (AdminRouteGuard/useVerifyAdminCredentials) to work with passkey-only admin verification and successfully navigate to /admin/products after a correct passkey entry, without showing \"Verification failed. Please check your credentials.\" for the correct passkey.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "recent-messages"
+        ],
+        "quotes": [
+          "now, it is not rerouting me to email page but showing Verification failed. Please check your credentials.",
+          "try to build again"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Entering the correct passkey \"Ved_ansh@04\" unlocks admin access for the current session and routes the user to /admin/products.",
+        "After successful verification, the admin prompt does not re-appear during the same session while the user remains logged in.",
+        "The message \"Verification failed. Please check your credentials.\" is not shown when the correct passkey is entered."
+      ]
+    }
+  ],
+  "constraints": [
+    "Backend must remain a single Motoko actor in backend/main.mo (no additional backend services).",
+    "Do not edit any files under frontend/src/components/ui or any frontend immutablePaths listed in SYSTEM_CONTEXT.",
+    "Keep normal (non-admin) user authentication/verification behavior unchanged."
+  ],
+  "nonGoals": [
+    "Implementing Internet Identity-based admin authentication (this request is for a static passkey only).",
+    "Adding new admin roles, multiple admin passkeys, or persistent (localStorage) admin unlock state.",
+    "Changing public site pages, product/enquiry/feedback/message functionality beyond what is required to fix admin login/unlock."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}
