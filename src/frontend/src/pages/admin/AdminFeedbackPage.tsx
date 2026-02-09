@@ -1,10 +1,11 @@
 import { useGetAllFeedback } from '../../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, MessageSquare } from 'lucide-react';
+import { Loader2, MessageSquare, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function AdminFeedbackPage() {
-  const { data: feedback, isLoading } = useGetAllFeedback();
+  const { data: feedback, isLoading, error } = useGetAllFeedback();
 
   const formatDate = (timestamp: bigint) => {
     return new Date(Number(timestamp)).toLocaleString();
@@ -21,6 +22,14 @@ export default function AdminFeedbackPage() {
           <div className="py-8 text-center">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
           </div>
+        ) : error ? (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              {error instanceof Error ? error.message : 'Failed to load feedback'}
+            </AlertDescription>
+          </Alert>
         ) : feedback && feedback.length > 0 ? (
           <div className="overflow-x-auto">
             <Table>

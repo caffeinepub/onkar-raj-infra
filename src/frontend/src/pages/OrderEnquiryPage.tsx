@@ -92,9 +92,9 @@ export default function OrderEnquiryPage() {
         setUploadProgress(0);
         setSubmitted(false);
       }, 3000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting enquiry:', error);
-      toast.error('Failed to submit request. Please try again.');
+      toast.error(error.message || 'Failed to submit request. Please try again.');
     }
   };
 

@@ -2,6 +2,7 @@ import { useInternetIdentity } from '../../hooks/useInternetIdentity';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { LogIn, LogOut, Loader2 } from 'lucide-react';
+import { adminSession } from '../../utils/adminSession';
 
 export default function LoginButton() {
   const { login, clear, loginStatus, identity } = useInternetIdentity();
@@ -13,6 +14,9 @@ export default function LoginButton() {
   const handleAuth = async () => {
     if (isAuthenticated) {
       await clear();
+      // Clear admin session on logout
+      adminSession.clear();
+      // Clear all cached data including admin data
       queryClient.clear();
     } else {
       try {

@@ -1,10 +1,11 @@
 import { useGetAllMessages } from '../../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Mail } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, Mail, AlertCircle } from 'lucide-react';
 
 export default function AdminMessagesPage() {
-  const { data: messages, isLoading } = useGetAllMessages();
+  const { data: messages, isLoading, error } = useGetAllMessages();
 
   const formatDate = (timestamp: bigint) => {
     return new Date(Number(timestamp)).toLocaleString();
@@ -21,14 +22,21 @@ export default function AdminMessagesPage() {
           <div className="py-8 text-center">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
           </div>
+        ) : error ? (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error.message || 'Failed to load messages. Please ensure you are logged in and have admin access.'}
+            </AlertDescription>
+          </Alert>
         ) : messages && messages.length > 0 ? (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
+                  <TableHead>Email</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Message</TableHead>
                   <TableHead>Date</TableHead>
@@ -38,11 +46,15 @@ export default function AdminMessagesPage() {
                 {messages.map((message) => (
                   <TableRow key={message.id}>
                     <TableCell className="font-medium">{message.name}</TableCell>
-                    <TableCell>{message.email}</TableCell>
                     <TableCell>{message.phone}</TableCell>
+                    <TableCell>{message.email}</TableCell>
                     <TableCell>{message.subject}</TableCell>
-                    <TableCell className="max-w-xs truncate">{message.message}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="max-w-xs">
+                      <div className="line-clamp-2" title={message.message}>
+                        {message.message}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                       {formatDate(message.timestamp)}
                     </TableCell>
                   </TableRow>

@@ -1,12 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Restore version-10-style passkey-only admin unlock so the correct passkey unlocks `/admin` without requiring Internet Identity, and fix the regression where failures are incorrectly shown as “Invalid passkey”.
+**Goal:** Fix unauthorized admin access by adding a dedicated admin login flow that requires Internet Identity login followed by an admin passkey check via `authenticateAdmin("Ved_ansh@04")`, with clear error handling and session persistence.
 
 **Planned changes:**
-- Fix the `/admin` unlock/verification flow so passkey `Ved_ansh@04` successfully unlocks an admin session and allows access to all `/admin/*` routes without requiring Internet Identity login.
-- Ensure passkey-only unlock works even when the user is currently logged into Internet Identity (no need to log out for admin access).
-- Persist admin unlock state and stored passkey for the duration of the browser session; clear it on explicit “Admin Logout”.
-- Update admin verification error handling to distinguish true backend “Invalid passkey” rejections from service/initialization/network failures, showing appropriate English messages and clearing session state on failed attempts.
+- Add/adjust the `/admin*` route guard to show a dedicated admin login screen instead of rendering admin pages when not unlocked.
+- Admin login flow: require Internet Identity login first, then prompt for the admin code and only submit verification after a code is entered.
+- On admin code submit, call backend `authenticateAdmin(passkey)`; unlock admin routes only on success, otherwise show inline error text (e.g., “Invalid passkey” / clear “not authenticated/actor not available” messaging).
+- Backend: ensure `authenticateAdmin` rejects any passkey other than exactly `Ved_ansh@04` with a clear error.
+- Persist an “admin unlocked” flag for the current browser session; clear it on “Admin Logout” and also clear it when any admin-only API call returns Unauthorized (returning the user to the admin login screen on next admin navigation).
 
-**User-visible outcome:** Visiting any `/admin/*` route shows a passkey prompt; entering `Ved_ansh@04` unlocks admin pages for the rest of the browser session (including direct navigation to admin subpages) without Internet Identity being required, and error messages correctly reflect whether the passkey is wrong vs the service is unavailable.
+**User-visible outcome:** Visiting any `/admin*` page prompts the user to sign in with Internet Identity, then enter the admin code; after successful verification, admin pages remain accessible for the browser session (including refresh) until admin logout or an Unauthorized response forces re-locking.

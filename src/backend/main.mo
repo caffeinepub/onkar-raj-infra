@@ -9,10 +9,11 @@ import Storage "blob-storage/Storage";
 import MixinAuthorization "authorization/MixinAuthorization";
 import Principal "mo:core/Principal";
 import MixinStorage "blob-storage/Mixin";
-import AccessControl "authorization/access-control";
-import Migration "migration";
 
-(with migration = Migration.run)
+
+import AccessControl "authorization/access-control";
+
+
 actor {
   module Product {
     public func compareByName(product1 : Product, product2 : Product) : Order.Order {
@@ -49,9 +50,20 @@ actor {
   var messages = Map.empty<Text, Message>();
   var userProfiles = Map.empty<Principal, UserProfile>();
 
-  // Passkey-based admin authentication (deprecated)
-  // let adminPasskey : Text = "Ved_ansh@04";
-  // var adminUnlockedState : Bool = false;
+  var siteSettings : SiteSettings = {
+    companyName = "Onkar Raj Infra";
+    contactLocation = "Placeholder location";
+    contactEmail = "contact@placeholder.com";
+    contactPhone = "+911234567890";
+    googleMapEmbed = "";
+    whatsappConfig = null;
+    pricingTable = [];
+    certifications = "";
+  };
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Types
+  /////////////////////////////////////////////////////////////////////////////
 
   public type UserProfile = {
     name : Text;
@@ -121,21 +133,9 @@ actor {
     prefilledMessage : ?Text;
   };
 
-  var siteSettings : SiteSettings = {
-    companyName = "Onkar Raj Infra";
-    contactLocation = "Placeholder location";
-    contactEmail = "contact@placeholder.com";
-    contactPhone = "+911234567890";
-    googleMapEmbed = "";
-    whatsappConfig = null;
-    pricingTable = [];
-    certifications = "";
-  };
-
   /////////////////////////////////////////////////////////////////////////////
   // Authorization Helpers
   /////////////////////////////////////////////////////////////////////////////
-  // Helper function to check if caller has admin access (via AccessControl only)
   private func isAdminAuthorized(caller : Principal) : Bool {
     AccessControl.isAdmin(accessControlState, caller);
   };
@@ -190,7 +190,6 @@ actor {
   // Enquiry Methods
   /////////////////////////////////////////////////////////////////////////////
   public shared ({ caller }) func submitEnquiry(enquiry : Enquiry) : async () {
-    // Contact info validation
     if (enquiry.phoneNumber.size() == 0) {
       Runtime.trap("Phone number is required");
     };
@@ -198,7 +197,6 @@ actor {
       Runtime.trap("Email address is required");
     };
 
-    // Minimum quantity validation (2000 meters)
     if (enquiry.quantity < 2000) {
       Runtime.trap("Order quantity must be at least 2000 meters");
     };
@@ -208,11 +206,12 @@ actor {
 
   public query ({ caller }) func getAllEnquiries() : async [Enquiry] {
     if (not isAdminAuthorized(caller)) {
-      Runtime.trap("Unauthorized: Only admins can view all enquiries");
+      Runtime.trap("Unauthorized: Only admins can access all enquiries");
     };
+
     let enquiryIter = enquiries.values();
     let enquiryArray = enquiryIter.toArray();
-    enquiryArray.sort(Enquiry.compareByTime);
+    enquiryArray.sort(Enquiry.compareByTime).reverse();
   };
 
   /////////////////////////////////////////////////////////////////////////////
@@ -228,11 +227,11 @@ actor {
     };
 
     let feedbackArray = feedback.values().toArray();
-    feedbackArray.sort(Feedback.compareByTime);
+    feedbackArray.sort(Feedback.compareByTime).reverse();
   };
 
   /////////////////////////////////////////////////////////////////////////////
-  // Message Methods (restricted by admin access)
+  // Message Methods (now accessible for admin interface)
   /////////////////////////////////////////////////////////////////////////////
   public shared ({ caller }) func sendMessage(message : Message) : async () {
     messages.add(message.id, message);
@@ -240,11 +239,11 @@ actor {
 
   public query ({ caller }) func getAllMessages() : async [Message] {
     if (not isAdminAuthorized(caller)) {
-      Runtime.trap("Unauthorized: Only admins can access the messages");
+      Runtime.trap("Unauthorized: Only admins can access all messages");
     };
 
     let messagesArray = messages.values().toArray();
-    messagesArray.sort(Message.compareByTime);
+    messagesArray.sort(Message.compareByTime).reverse();
   };
 
   /////////////////////////////////////////////////////////////////////////////
@@ -270,4 +269,13 @@ actor {
     };
     null;
   };
+
+  /// Grant admin access if correct passkey (from authenticated II user)
+  public shared ({ caller }) func authenticateAdmin(passkey : Text) : async () {
+    if (passkey != "Ved_ansh@04") {
+      Runtime.trap("Invalid passkey");
+    };
+    AccessControl.assignRole(accessControlState, caller, caller, #admin);
+  };
 };
+

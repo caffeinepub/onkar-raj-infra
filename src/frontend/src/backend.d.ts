@@ -82,6 +82,10 @@ export enum UserRole {
 export interface backendInterface {
     addProduct(product: Product): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    /**
+     * / Grant admin access if correct passkey (from authenticated II user)
+     */
+    authenticateAdmin(passkey: string): Promise<void>;
     getAllEnquiries(): Promise<Array<Enquiry>>;
     getAllFeedback(): Promise<Array<Feedback>>;
     getAllMessages(): Promise<Array<Message>>;

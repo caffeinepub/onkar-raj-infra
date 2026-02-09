@@ -1,5 +1,6 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useActor } from './useActor';
+import { useInternetIdentity } from './useInternetIdentity';
 import type { UserProfile } from '../backend';
 import { adminSession } from '../utils/adminSession';
 
@@ -17,29 +18,58 @@ export function useIsCallerAdmin() {
 }
 
 export function useVerifyAdminPasskey() {
+  const { actor } = useActor();
+  const { identity } = useInternetIdentity();
+
   return useMutation({
     mutationFn: async (passkey: string) => {
-      // Simple client-side passkey verification
-      const ADMIN_PASSKEY = 'Ved_ansh@04';
-      
-      if (!passkey || passkey.trim() !== ADMIN_PASSKEY) {
-        // Clear any stored passkey on failure
+      // Check if user is authenticated first
+      if (!identity) {
         adminSession.clear();
-        throw new Error('Invalid passkey');
+        throw new Error('Please log in with Internet Identity first');
       }
-      
+
+      // Check if actor is available
+      if (!actor) {
+        adminSession.clear();
+        throw new Error('Connection not available. Please try again.');
+      }
+
+      // Validate passkey input
+      const trimmedPasskey = passkey.trim();
+      if (!trimmedPasskey) {
+        adminSession.clear();
+        throw new Error('Passkey is required');
+      }
+
       try {
-        // Store the passkey in session for subsequent admin calls
-        adminSession.setPasskey(passkey.trim());
+        // Call backend to authenticate and grant admin role
+        await actor.authenticateAdmin(trimmedPasskey);
+        
+        // Backend confirmed admin access, mark session as unlocked
+        adminSession.setUnlocked();
         
         // Emit session change event
         adminSession.notifyChange();
         
         return true;
       } catch (error: any) {
-        // Clear any stored passkey on failure
+        // Clear session on any failure
         adminSession.clear();
-        throw new Error('An error occurred. Please try again.');
+        
+        // Provide user-friendly error messages
+        const errorMessage = error.message || '';
+        
+        if (errorMessage.includes('Invalid passkey')) {
+          throw new Error('Invalid passkey');
+        }
+        
+        if (errorMessage.includes('Unauthorized')) {
+          throw new Error('Unauthorized access');
+        }
+        
+        // Generic error for any other failure
+        throw new Error('Authentication failed. Please try again.');
       }
     },
   });

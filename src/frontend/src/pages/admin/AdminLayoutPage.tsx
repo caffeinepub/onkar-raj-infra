@@ -1,9 +1,10 @@
-import { Outlet, useLocation, useNavigate } from '@tanstack/react-router';
+import { useLocation, useNavigate } from '@tanstack/react-router';
 import { Link } from '@tanstack/react-router';
 import { Package, FileText, MessageSquare, Mail, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { adminSession } from '../../utils/adminSession';
+import { useQueryClient } from '@tanstack/react-query';
 import AdminProductsPage from './AdminProductsPage';
 import AdminEnquiriesPage from './AdminEnquiriesPage';
 import AdminFeedbackPage from './AdminFeedbackPage';
@@ -12,6 +13,7 @@ import AdminMessagesPage from './AdminMessagesPage';
 export default function AdminLayoutPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const navItems = [
     { path: '/admin/products', label: 'Products', icon: Package },
@@ -21,9 +23,14 @@ export default function AdminLayoutPage() {
   ];
 
   const handleAdminLogout = () => {
+    // Clear admin session
     adminSession.logout();
-    // Navigate to home and force a re-render
-    navigate({ to: '/' });
+    // Clear cached admin data
+    queryClient.removeQueries({ queryKey: ['enquiries'] });
+    queryClient.removeQueries({ queryKey: ['feedback'] });
+    queryClient.removeQueries({ queryKey: ['messages'] });
+    // Navigate to admin login
+    navigate({ to: '/admin/login' });
   };
 
   // Determine which page to render based on current path

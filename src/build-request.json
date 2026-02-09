@@ -1,99 +1,80 @@
 {
   "kind": "build_request",
-  "title": "Restore version-10 passkey-only /admin login and fix 'Invalid passkey' regression",
+  "title": "Fix admin unauthorized access by adding admin code login prompt that calls authenticateAdmin(\"Ved_ansh@04\")",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the /admin unlock flow so entering the correct admin passkey \"Ved_ansh@04\" successfully unlocks the admin session (no erroneous \"Invalid passkey\" error) and grants access to all /admin routes without requiring Internet Identity login.",
-      "target": "both",
+      "text": "Ensure the admin route guard presents a dedicated admin login screen that (1) requires the user to log in with Internet Identity and then (2) prompts for the admin code, and on submit calls the backend method authenticateAdmin(passkey) to grant the logged-in principal admin rights.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4",
-          "msg-8",
-          "msg-14"
+          "recent-6",
+          "recent-9",
+          "recent-11"
         ],
         "quotes": [
-          "it is still showing passkey as invalid",
-          "there was no passkey issues in version 10 i want it like that",
-          "in version 10... i just had to enter the passkey Ved_ansh@04 and i was able to login. there was no need of internet identity"
+          "now passkey is showing unauthorised access",
+          "option 2",
+          "admin code will be Ved_ansh@04"
         ]
       },
       "acceptanceCriteria": [
-        "When visiting /admin (or any /admin/* route) while not logged into Internet Identity, the app shows the passkey prompt and the passkey \"Ved_ansh@04\" unlocks admin access successfully.",
-        "When visiting /admin (or any /admin/* route) while logged into Internet Identity, the app still allows passkey-only unlock and does not require logging out of Internet Identity to access admin.",
-        "After successful unlock, navigating directly to /admin/products, /admin/enquiries, /admin/feedback, and /admin/messages works without re-entering the passkey during the same browser session.",
-        "Backend calls used by admin pages (e.g., addProduct, getAllEnquiriesWithPasskey, updateSiteSettings, getAllFeedback, getAllMessages) succeed after unlock using the stored session passkey."
+        "When visiting any /admin* route while logged out, the user is prompted to log in with Internet Identity first.",
+        "After Internet Identity login succeeds, the UI prompts for the admin code (passkey) and does not attempt verification before a code is entered.",
+        "Submitting the admin code triggers a call to authenticateAdmin(passkey).",
+        "If authenticateAdmin succeeds, the admin content renders and the user can navigate to /admin/products, /admin/enquiries, /admin/feedback, and /admin/messages without seeing Unauthorized errors.",
+        "If authenticateAdmin fails (e.g., wrong code), an inline error is displayed and admin content remains locked."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Update frontend admin verification error handling so non-passkey failures (e.g., backend actor initialization errors, missing admin token initialization, network issues) are not misreported as \"Invalid passkey\"; show distinct, user-facing English messages for service/initialization failures.",
-      "target": "frontend",
+      "text": "Use the admin code value exactly as provided (\"Ved_ansh@04\") for backend verification, and ensure frontend error handling maps backend failures (e.g., \"Invalid passkey\" / \"Unauthorized\") into clear, English error messages in the admin login screen.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-4"
+          "recent-11"
         ],
         "quotes": [
-          "it is still showing passkey as invalid"
+          "admin code will be Ved_ansh@04"
         ]
       },
       "acceptanceCriteria": [
-        "If admin verification fails due to service initialization or connectivity (not a backend \"Invalid passkey\" trap), the UI displays a non-passkey-specific message (e.g., \"Service unavailable. Please try again.\") instead of \"Invalid passkey\".",
-        "If the backend explicitly rejects the passkey (trap includes \"Invalid passkey\"), the UI displays \"Invalid passkey\".",
-        "The admin session in sessionStorage is cleared on failed verification attempts."
+        "Backend authenticateAdmin rejects any passkey other than \"Ved_ansh@04\" with a clear error (e.g., \"Invalid passkey\").",
+        "Frontend displays \"Invalid passkey\" when the backend rejects the code, and does not unlock the admin session on failure.",
+        "Frontend displays a clear English message when the actor is not available or the user is not authenticated yet."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Ensure admin unlock persists for the duration of the browser session and is cleared on explicit admin logout.",
+      "text": "After successful admin authentication, persist an “admin unlocked” session flag for the current browser session and automatically clear it on admin logout and on any backend Unauthorized response from admin-only API calls.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-14",
-          "msg-15"
+          "recent-6",
+          "recent-9"
         ],
         "quotes": [
-          "in version 10... i just had to enter the passkey Ved_ansh@04 and i was able to login.",
+          "fix it",
           "build"
         ]
       },
       "acceptanceCriteria": [
-        "After successful passkey verification, adminSession.isUnlocked() returns true until the browser session ends or the admin explicitly logs out.",
-        "Clicking the existing \"Admin Logout\" button clears the stored admin unlock state and passkey and returns the user to a non-admin route (e.g., /).",
-        "After admin logout, visiting any /admin/* route shows the passkey prompt again."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Keep Internet Identity enabled for non-admin parts of the site; do not require Internet Identity for /admin access or imply it as a prerequisite in the admin access UI.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-11",
-          "msg-12"
-        ],
-        "quotes": [
-          "yes not for everyone",
-          "Internet Identity login is not required for admin access. Only the passkey is needed."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Public pages continue to show and use Internet Identity login/logout as before.",
-        "Admin access prompt continues to state that Internet Identity is not required for admin access.",
-        "No /admin route redirects the user to an Internet Identity login flow to unlock admin access."
+        "After successful verification, refreshing the page during the same browser session keeps admin pages accessible without re-entering the code (until session ends or logout).",
+        "Clicking “Admin Logout” clears the admin unlocked session state and returning to /admin* shows the admin login screen again.",
+        "If any admin data-fetch call returns an Unauthorized error, the app clears the admin unlocked session state and returns to the admin login screen on the next admin navigation."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo; introduce backend/migration.mo only if stable state layout changes are required.",
-    "Do not edit files under frontend/src/components/ui or any other paths listed in frontend.immutablePaths (compose those components instead).",
-    "Use English for any user-facing text."
+    "Do not edit files under frontend/src/components/ui (shadcn components are read-only).",
+    "Do not edit immutable paths listed in SYSTEM_CONTEXT (compose existing hooks instead of modifying them).",
+    "Backend must remain a single Motoko actor in backend/main.mo; only add migration logic if persisted state shape must change."
   ],
   "nonGoals": [
-    "Do not remove Internet Identity from the rest of the site (non-admin users).",
-    "Do not add third-party authentication providers (only Internet Identity is allowed).",
-    "Do not introduce external databases or additional backend services."
+    "Adding third-party authentication providers (only Internet Identity is supported).",
+    "Implementing real-time updates or WebSocket-based admin data refresh.",
+    "Adding new admin features unrelated to unlocking access (e.g., enquiry confirm/reject backend support)."
   ],
   "imageRequirements": {
     "required": [],

@@ -1,62 +1,30 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T10:08:44.159Z",
-  "summary": "The diff shifts admin access to a purely client-side passkey check and removes/deprecates backend passkey-based authentication state. Admin route guarding and session persistence via sessionStorage are implemented, but backend authorization for admin APIs and the requested error-handling distinctions for initialization/connectivity are not evidenced as implemented.",
-  "missing_requirements": [
-    {
-      "id": "REQ-1",
-      "requirement": "Fix the /admin unlock flow so the correct passkey unlocks admin and backend admin calls succeed after unlock using the stored session passkey (no II required).",
-      "reason": "Frontend unlock is implemented via client-side string comparison, but the backend passkey-based admin authentication state is commented out/removed and backend authorization helper now checks AccessControl admins only. The admin backend calls shown (e.g., addProduct/getAllEnquiries/getAllFeedback) are invoked without any passkey being sent, so there is no evidence that backend calls will succeed based on the stored session passkey as required.",
-      "evidence": [
-        "backend/main.mo",
-        "frontend/src/hooks/useAuthz.ts",
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/utils/adminSession.ts"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "requirement": "Update frontend admin verification error handling so non-passkey failures are not misreported as \"Invalid passkey\"; show distinct English messages for service/initialization failures; clear sessionStorage on failed verification attempts.",
-      "reason": "The verification mutation does not perform any backend/service call, so it cannot distinguish backend traps vs connectivity/initialization failures. The only explicit messages are \"Invalid passkey\" for mismatch and a generic \"An error occurred. Please try again.\" for any caught error, with no evidence of handling actor initialization/network failures during verification as specified.",
-      "evidence": [
-        "frontend/src/hooks/useAuthz.ts"
-      ]
-    }
-  ],
+  "generatedAt": "2026-02-09T11:11:52.636Z",
+  "summary": "Implemented a dedicated /admin/login two-step admin access flow (Internet Identity login then admin passkey verification calling backend authenticateAdmin), added an admin session flag persisted in sessionStorage, updated admin route guarding to redirect to the login screen with returnPath, and added logic to clear the admin session on logout and on Unauthorized errors in some admin API hooks. Also introduced enquiry confirm/reject placeholder hooks not requested.",
+  "missing_requirements": [],
   "hallucinated_features": [
     {
-      "description": "Client-side-only admin passkey verification (hardcoded \"Ved_ansh@04\") without any backend verification.",
-      "reason": "The BuildRequest asks to restore passkey-only /admin unlock flow and ensure backend admin calls succeed after unlock using stored session passkey; it does not request moving verification entirely to the client or hardcoding the passkey in the frontend as the sole authority.",
-      "evidence": [
-        "frontend/src/hooks/useAuthz.ts"
-      ]
-    },
-    {
-      "description": "Removal/migration away from backend passkey-based admin state (adminPasskey/adminUnlockedState) and introduction of a migration that drops those fields.",
-      "reason": "The request is to restore version-10 passkey-only admin login and fix a regression; the diff instead deprecates/removes passkey-based backend auth state and adds a migration that eliminates it.",
-      "evidence": [
-        "backend/main.mo",
-        "backend/migration.mo"
-      ]
-    },
-    {
-      "description": "Placeholder confirm/reject enquiry hooks that intentionally throw \"not yet implemented\" errors.",
-      "reason": "Not part of the BuildRequest requirements for restoring admin login and fixing invalid passkey regression; adds new behavior unrelated to requested changes.",
+      "description": "Added placeholder admin enquiry confirm/reject mutations that simulate work then throw 'not yet implemented' errors.",
+      "reason": "BuildRequest explicitly lists implementing enquiry confirm/reject backend support as a non-goal, and these new hooks are unrelated to unlocking admin access.",
       "evidence": [
         "frontend/src/hooks/useQueries.ts"
       ]
     }
   ],
-  "confidence": 0.78,
+  "confidence": 0.62,
   "changed_files": [
     "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
+    "frontend/src/App.tsx",
+    "frontend/src/components/auth/LoginButton.tsx",
     "frontend/src/hooks/useAuthz.ts",
     "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/admin/AdminLayoutPage.tsx",
+    "frontend/src/pages/admin/AdminLoginPage.tsx",
     "frontend/src/pages/admin/AdminRouteGuard.tsx",
+    "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
     "frontend/src/utils/adminSession.ts",
     "project_state.json"
   ]

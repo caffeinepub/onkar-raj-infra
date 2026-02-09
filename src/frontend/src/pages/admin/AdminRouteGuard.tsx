@@ -1,7 +1,6 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from '@tanstack/react-router';
-import { useVerifyAdminPasskey } from '../../hooks/useAuthz';
-import AdminTwoStepAccessPrompt from './AdminTwoStepAccessPrompt';
+import { useInternetIdentity } from '../../hooks/useInternetIdentity';
 import { adminSession } from '../../utils/adminSession';
 
 interface AdminRouteGuardProps {
@@ -11,7 +10,7 @@ interface AdminRouteGuardProps {
 export default function AdminRouteGuard({ children }: AdminRouteGuardProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const verifyMutation = useVerifyAdminPasskey();
+  const { identity } = useInternetIdentity();
   const [isUnlocked, setIsUnlocked] = useState(adminSession.isUnlocked());
 
   // Subscribe to session changes
@@ -22,33 +21,21 @@ export default function AdminRouteGuard({ children }: AdminRouteGuardProps) {
     return unsubscribe;
   }, []);
 
-  const handleVerify = async (passkey: string) => {
-    try {
-      await verifyMutation.mutateAsync(passkey);
-      // Successfully verified, update state
-      setIsUnlocked(true);
-      
-      // Navigate to the originally requested path, or default to /admin/products if on /admin
-      if (location.pathname === '/admin') {
-        navigate({ to: '/admin/products' });
-      }
-      // Otherwise stay on the current path (it will now render)
-    } catch (error: any) {
-      // Re-throw to let the prompt component handle the error display
-      throw error;
+  // Redirect to admin login if not authenticated or not unlocked
+  useEffect(() => {
+    if (!identity || !isUnlocked) {
+      navigate({ 
+        to: '/admin/login',
+        search: { returnPath: location.pathname }
+      });
     }
-  };
+  }, [identity, isUnlocked, navigate, location.pathname]);
 
-  // If session is unlocked, render admin content
-  if (isUnlocked) {
+  // If session is unlocked AND user is authenticated, render admin content
+  if (isUnlocked && identity) {
     return <>{children}</>;
   }
 
-  // Otherwise, show passkey prompt (no admin content should be visible)
-  return (
-    <AdminTwoStepAccessPrompt
-      onVerify={handleVerify}
-      isVerifying={verifyMutation.isPending}
-    />
-  );
+  // Otherwise, render nothing (redirect will happen)
+  return null;
 }

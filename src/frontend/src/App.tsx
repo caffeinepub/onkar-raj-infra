@@ -8,6 +8,7 @@ import UsesApplicationsPage from './pages/UsesApplicationsPage';
 import OrderEnquiryPage from './pages/OrderEnquiryPage';
 import ContactPage from './pages/ContactPage';
 import AdminLayoutPage from './pages/admin/AdminLayoutPage';
+import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminRouteGuard from './pages/admin/AdminRouteGuard';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -49,6 +50,13 @@ const contactRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/contact',
   component: ContactPage,
+});
+
+// Admin login route (no guard)
+const adminLoginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/admin/login',
+  component: AdminLoginPage,
 });
 
 // Admin routes with guard - all admin routes now render AdminLayoutPage which handles sub-routing
@@ -109,6 +117,7 @@ const routeTree = rootRoute.addChildren([
   usesRoute,
   orderRoute,
   contactRoute,
+  adminLoginRoute,
   adminRoute,
   adminProductsRoute,
   adminEnquiriesRoute,

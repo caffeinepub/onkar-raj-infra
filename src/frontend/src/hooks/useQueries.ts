@@ -25,15 +25,18 @@ export function useAddProduct() {
     mutationFn: async (product: Product) => {
       if (!actor) throw new Error('Actor not available');
       if (!adminSession.isUnlocked()) throw new Error('Admin session not unlocked');
-      return actor.addProduct(product);
+      try {
+        return await actor.addProduct(product);
+      } catch (error: any) {
+        if (error.message && error.message.includes('Unauthorized')) {
+          adminSession.clear();
+          throw new Error('Unauthorized: Admin access required');
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
-    },
-    onError: (error: any) => {
-      if (error.message && error.message.includes('Unauthorized')) {
-        adminSession.clear();
-      }
     },
   });
 }
@@ -42,12 +45,22 @@ export function useAddProduct() {
 export function useGetAllEnquiries() {
   const { actor, isFetching } = useActor();
 
-  return useQuery<Enquiry[]>({
+  return useQuery<Enquiry[], Error>({
     queryKey: ['enquiries'],
     queryFn: async () => {
-      if (!actor) return [];
+      if (!actor) throw new Error('Actor not available');
       if (!adminSession.isUnlocked()) throw new Error('Admin session not unlocked');
-      return actor.getAllEnquiries();
+      try {
+        const result = await actor.getAllEnquiries();
+        // Sort by timestamp descending (newest first)
+        return result.sort((a, b) => Number(b.timestamp - a.timestamp));
+      } catch (error: any) {
+        if (error.message && error.message.includes('Unauthorized')) {
+          adminSession.clear();
+          throw new Error('Unauthorized: Admin access required');
+        }
+        throw error;
+      }
     },
     enabled: !!actor && !isFetching && adminSession.isUnlocked(),
     retry: false,
@@ -92,11 +105,34 @@ export function useRejectEnquiry() {
 
 export function useSubmitEnquiry() {
   const { actor } = useActor();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (enquiry: Enquiry) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.submitEnquiry(enquiry);
+      try {
+        await actor.submitEnquiry(enquiry);
+      } catch (error: any) {
+        // Transform backend errors into user-friendly messages
+        if (error.message) {
+          if (error.message.includes('Phone number is required')) {
+            throw new Error('Phone number is required');
+          }
+          if (error.message.includes('Email address is required')) {
+            throw new Error('Email address is required');
+          }
+          if (error.message.includes('Order quantity must be at least 2000 meters')) {
+            throw new Error('Minimum order quantity is 2000 meters');
+          }
+        }
+        throw new Error('Failed to submit enquiry. Please try again.');
+      }
+    },
+    onSuccess: () => {
+      // Invalidate admin enquiries if session is unlocked
+      if (adminSession.isUnlocked()) {
+        queryClient.invalidateQueries({ queryKey: ['enquiries'] });
+      }
     },
   });
 }
@@ -105,12 +141,22 @@ export function useSubmitEnquiry() {
 export function useGetAllFeedback() {
   const { actor, isFetching } = useActor();
 
-  return useQuery<Feedback[]>({
+  return useQuery<Feedback[], Error>({
     queryKey: ['feedback'],
     queryFn: async () => {
-      if (!actor) return [];
+      if (!actor) throw new Error('Actor not available');
       if (!adminSession.isUnlocked()) throw new Error('Admin session not unlocked');
-      return actor.getAllFeedback();
+      try {
+        const result = await actor.getAllFeedback();
+        // Sort by timestamp descending (newest first)
+        return result.sort((a, b) => Number(b.timestamp - a.timestamp));
+      } catch (error: any) {
+        if (error.message && error.message.includes('Unauthorized')) {
+          adminSession.clear();
+          throw new Error('Unauthorized: Admin access required');
+        }
+        throw error;
+      }
     },
     enabled: !!actor && !isFetching && adminSession.isUnlocked(),
     retry: false,
@@ -132,12 +178,22 @@ export function useSubmitFeedback() {
 export function useGetAllMessages() {
   const { actor, isFetching } = useActor();
 
-  return useQuery<Message[]>({
+  return useQuery<Message[], Error>({
     queryKey: ['messages'],
     queryFn: async () => {
-      if (!actor) return [];
+      if (!actor) throw new Error('Actor not available');
       if (!adminSession.isUnlocked()) throw new Error('Admin session not unlocked');
-      return actor.getAllMessages();
+      try {
+        const result = await actor.getAllMessages();
+        // Sort by timestamp descending (newest first)
+        return result.sort((a, b) => Number(b.timestamp - a.timestamp));
+      } catch (error: any) {
+        if (error.message && error.message.includes('Unauthorized')) {
+          adminSession.clear();
+          throw new Error('Unauthorized: Admin access required');
+        }
+        throw error;
+      }
     },
     enabled: !!actor && !isFetching && adminSession.isUnlocked(),
     retry: false,
@@ -151,10 +207,18 @@ export function useSendMessage() {
   return useMutation({
     mutationFn: async (message: Message) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.sendMessage(message);
+      try {
+        await actor.sendMessage(message);
+      } catch (error: any) {
+        // Transform backend errors into user-friendly messages
+        throw new Error('Failed to send message. Please try again.');
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      // Invalidate admin messages if session is unlocked
+      if (adminSession.isUnlocked()) {
+        queryClient.invalidateQueries({ queryKey: ['messages'] });
+      }
     },
   });
 }
@@ -181,15 +245,18 @@ export function useUpdateSiteSettings() {
     mutationFn: async (settings: SiteSettings) => {
       if (!actor) throw new Error('Actor not available');
       if (!adminSession.isUnlocked()) throw new Error('Admin session not unlocked');
-      return actor.updateSiteSettings(settings);
+      try {
+        return await actor.updateSiteSettings(settings);
+      } catch (error: any) {
+        if (error.message && error.message.includes('Unauthorized')) {
+          adminSession.clear();
+          throw new Error('Unauthorized: Admin access required');
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
-    },
-    onError: (error: any) => {
-      if (error.message && error.message.includes('Unauthorized')) {
-        adminSession.clear();
-      }
     },
   });
 }

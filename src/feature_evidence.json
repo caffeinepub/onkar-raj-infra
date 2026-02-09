@@ -2,13 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-admin-unlock-flow-so-entering-the-correct-admin-passkey-ved-ansh-04-successfully-unlocks-the-admin-session-no-erroneous-invalid-passkey-error-and-grants-access-to-all-admin-routes-without-requiring-internet-identity-login",
-      "featureTitle": "Fix the /admin unlock flow so entering the correct admin passkey \"Ved_ansh@04\" successfully unlocks the admin session (no erroneous \"Invalid passkey\" error) and grants access to all /admin routes without requiring Internet Identity login.",
+      "featureId": "feature-ensure-the-admin-route-guard-presents-a-dedicated-admin-login-screen-that-1-requires-the-user-to-log-in-with-internet-identity-and-then-2-prompts-for-the-admin-code-and-on-submit-calls-the-backend-method-authenticateadmin-passkey-to-grant-the-logged-in-principal-admin-rights",
+      "featureTitle": "Ensure the admin route guard presents a dedicated admin login screen that (1) requires the user to log in with Internet Identity and then (2) prompts for the admin code, and on submit calls the backend method authenticateAdmin(passkey) to grant the logged-in principal admin rights.",
       "files": [
-        "frontend/src/hooks/useAuthz.ts",
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/admin/AdminRouteGuard.tsx",
-        "frontend/src/utils/adminSession.ts"
+        "frontend/src/App.tsx",
+        "frontend/src/pages/admin/AdminLoginPage.tsx",
+        "frontend/src/pages/admin/AdminRouteGuard.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -25,11 +24,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-update-frontend-admin-verification-error-handling-so-non-passkey-failures-e-g-backend-actor-initialization-errors-missing-admin-token-initialization-network-issues-are-not-misreported-as-invalid-passkey-show-distinct-user-facing-english-messages-for-service-initialization-failures",
-      "featureTitle": "Update frontend admin verification error handling so non-passkey failures (e.g., backend actor initialization errors, missing admin token initialization, network issues) are not misreported as \"Invalid passkey\"; show distinct, user-facing English messages for service/initialization failures.",
+      "featureId": "feature-use-the-admin-code-value-exactly-as-provided-ved-ansh-04-for-backend-verification-and-ensure-frontend-error-handling-maps-backend-failures-e-g-invalid-passkey-unauthorized-into-clear-english-error-messages-in-the-admin-login-screen",
+      "featureTitle": "Use the admin code value exactly as provided (\"Ved_ansh@04\") for backend verification, and ensure frontend error handling maps backend failures (e.g., \"Invalid passkey\" / \"Unauthorized\") into clear, English error messages in the admin login screen.",
       "files": [
         "frontend/src/hooks/useAuthz.ts",
-        "frontend/src/pages/admin/AdminRouteGuard.tsx"
+        "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -46,11 +45,12 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-ensure-admin-unlock-persists-for-the-duration-of-the-browser-session-and-is-cleared-on-explicit-admin-logout",
-      "featureTitle": "Ensure admin unlock persists for the duration of the browser session and is cleared on explicit admin logout.",
+      "featureId": "feature-after-successful-admin-authentication-persist-an-admin-unlocked-session-flag-for-the-current-browser-session-and-automatically-clear-it-on-admin-logout-and-on-any-backend-unauthorized-response-from-admin-only-api-calls",
+      "featureTitle": "After successful admin authentication, persist an “admin unlocked” session flag for the current browser session and automatically clear it on admin logout and on any backend Unauthorized response from admin-only API calls.",
       "files": [
+        "frontend/src/components/auth/LoginButton.tsx",
+        "frontend/src/hooks/useQueries.ts",
         "frontend/src/pages/admin/AdminLayoutPage.tsx",
-        "frontend/src/pages/admin/AdminRouteGuard.tsx",
         "frontend/src/utils/adminSession.ts"
       ],
       "components": [

@@ -100,6 +100,10 @@ export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addProduct' : ActorMethod<[Product], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  /**
+   * / Grant admin access if correct passkey (from authenticated II user)
+   */
+  'authenticateAdmin' : ActorMethod<[string], undefined>,
   'getAllEnquiries' : ActorMethod<[], Array<Enquiry>>,
   'getAllFeedback' : ActorMethod<[], Array<Feedback>>,
   'getAllMessages' : ActorMethod<[], Array<Message>>,

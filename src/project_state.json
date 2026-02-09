@@ -1,35 +1,35 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Project to build a site with an /admin area for managing products and enquiries. Admin authentication should use a simple passkey-based login (as in version 10) while regular users continue using Internet Identity.",
+  "summary": "Implement passkey-based admin access flow; fix unauthorized access by adding an admin login screen that calls authenticateAdmin using an admin code.",
   "architectural_notes": [
-    "Admin authentication: passkey-based login for /admin (no Internet Identity).",
-    "User authentication: Internet Identity for non-admin users."
+    "Admin authorization requires calling backend authenticateAdmin(adminCode) after passkey login to assign admin role.",
+    "Admin login screen will collect the admin code (Ved_ansh@04) and trigger authenticateAdmin to activate admin access."
   ],
   "known_issues": [
-    "Regression in newer versions: admin passkey currently reported as invalid; needs to match version-10 behavior."
+    "Passkey login currently results in 'Unauthorized' on admin pages because authenticateAdmin is not being called / admin role not assigned."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-fix-the-admin-unlock-flow-so-entering-the-correct-admin-passkey-ved-ansh-04-successfully-unlocks-the-admin-session-no-erroneous-invalid-passkey-error-and-grants-access-to-all-admin-routes-without-requiring-internet-identity-login",
-      "title": "Fix the /admin unlock flow so entering the correct admin passkey \"Ved_ansh@04\" successfully unlocks the admin session (no erroneous \"Invalid passkey\" error) and grants access to all /admin routes without requiring Internet Identity login.",
+      "id": "feature-ensure-the-admin-route-guard-presents-a-dedicated-admin-login-screen-that-1-requires-the-user-to-log-in-with-internet-identity-and-then-2-prompts-for-the-admin-code-and-on-submit-calls-the-backend-method-authenticateadmin-passkey-to-grant-the-logged-in-principal-admin-rights",
+      "title": "Ensure the admin route guard presents a dedicated admin login screen that (1) requires the user to log in with Internet Identity and then (2) prompts for the admin code, and on submit calls the backend method authenticateAdmin(passkey) to grant the logged-in principal admin rights.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-update-frontend-admin-verification-error-handling-so-non-passkey-failures-e-g-backend-actor-initialization-errors-missing-admin-token-initialization-network-issues-are-not-misreported-as-invalid-passkey-show-distinct-user-facing-english-messages-for-service-initialization-failures",
-      "title": "Update frontend admin verification error handling so non-passkey failures (e.g., backend actor initialization errors, missing admin token initialization, network issues) are not misreported as \"Invalid passkey\"; show distinct, user-facing English messages for service/initialization failures.",
+      "id": "feature-use-the-admin-code-value-exactly-as-provided-ved-ansh-04-for-backend-verification-and-ensure-frontend-error-handling-maps-backend-failures-e-g-invalid-passkey-unauthorized-into-clear-english-error-messages-in-the-admin-login-screen",
+      "title": "Use the admin code value exactly as provided (\"Ved_ansh@04\") for backend verification, and ensure frontend error handling maps backend failures (e.g., \"Invalid passkey\" / \"Unauthorized\") into clear, English error messages in the admin login screen.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-ensure-admin-unlock-persists-for-the-duration-of-the-browser-session-and-is-cleared-on-explicit-admin-logout",
-      "title": "Ensure admin unlock persists for the duration of the browser session and is cleared on explicit admin logout.",
+      "id": "feature-after-successful-admin-authentication-persist-an-admin-unlocked-session-flag-for-the-current-browser-session-and-automatically-clear-it-on-admin-logout-and-on-any-backend-unauthorized-response-from-admin-only-api-calls",
+      "title": "After successful admin authentication, persist an “admin unlocked” session flag for the current browser session and automatically clear it on admin logout and on any backend Unauthorized response from admin-only API calls.",
       "reqIds": [
         "REQ-3"
       ],
@@ -39,20 +39,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Restore version-10 admin login: /admin uses a simple passkey (e.g., \"Ved_ansh@04\") without Internet Identity, while normal users continue using Internet Identity.",
+      "summary": "Add admin login screen (admin code: Ved_ansh@04) that triggers authenticateAdmin after passkey login to resolve unauthorized access",
       "reqIds": [],
       "status": "in_progress"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Keep Internet Identity enabled for non-admin parts of the site; do not require Internet Identity for /admin access or imply it as a prerequisite in the admin access UI.",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "status": "pending"
     }
   ],
-  "projectName": "Restore version-10 passkey-only /admin login and fix 'Invalid passkey' regression",
+  "projectName": "Fix admin unauthorized access by adding admin code login prompt that calls authenticateAdmin(\"Ved_ansh@04\")",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

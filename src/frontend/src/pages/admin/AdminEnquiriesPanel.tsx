@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,12 +15,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, FileText, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { OrderType } from '../../backend';
 import { toast } from 'sonner';
 
 export default function AdminEnquiriesPanel() {
-  const { data: enquiries, isLoading } = useGetAllEnquiries();
+  const { data: enquiries, isLoading, error } = useGetAllEnquiries();
   const confirmMutation = useConfirmEnquiry();
   const rejectMutation = useRejectEnquiry();
 
@@ -79,6 +80,13 @@ export default function AdminEnquiriesPanel() {
             <div className="py-8 text-center">
               <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
             </div>
+          ) : error ? (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {error.message || 'Failed to load enquiries. Please ensure you are logged in and have admin access.'}
+              </AlertDescription>
+            </Alert>
           ) : enquiries && enquiries.length > 0 ? (
             <div className="overflow-x-auto">
               <Table>
@@ -99,8 +107,8 @@ export default function AdminEnquiriesPanel() {
                   {enquiries.map((enquiry) => (
                     <TableRow key={enquiry.id}>
                       <TableCell className="font-medium">{enquiry.customerName}</TableCell>
-                      <TableCell>{enquiry.phoneNumber || '-'}</TableCell>
-                      <TableCell>{enquiry.email || '-'}</TableCell>
+                      <TableCell>{enquiry.phoneNumber}</TableCell>
+                      <TableCell>{enquiry.email}</TableCell>
                       <TableCell>
                         <Badge variant={enquiry.orderType === OrderType.placeOrder ? 'default' : 'secondary'}>
                           {enquiry.orderType === OrderType.placeOrder ? 'Order' : 'Quote'}
@@ -110,9 +118,12 @@ export default function AdminEnquiriesPanel() {
                       <TableCell>{enquiry.quantity.toString()}m</TableCell>
                       <TableCell>
                         {enquiry.requirementsFile ? (
-                          <FileText className="h-4 w-4 text-primary" />
+                          <Badge variant="outline" className="gap-1">
+                            <FileText className="h-3 w-3" />
+                            Attached
+                          </Badge>
                         ) : (
-                          '-'
+                          <span className="text-muted-foreground">None</span>
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">

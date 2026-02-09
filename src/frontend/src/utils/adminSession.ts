@@ -1,44 +1,21 @@
 const ADMIN_UNLOCK_KEY = 'admin_session_unlocked';
-const ADMIN_PASSKEY_KEY = 'admin_session_passkey';
 const SESSION_CHANGE_EVENT = 'admin-session-change';
 
 export const adminSession = {
   isUnlocked(): boolean {
     if (typeof window === 'undefined') return false;
-    const unlocked = sessionStorage.getItem(ADMIN_UNLOCK_KEY) === 'true';
-    const hasPasskey = !!sessionStorage.getItem(ADMIN_PASSKEY_KEY);
-    // Only consider unlocked if both flags are present
-    return unlocked && hasPasskey;
+    return sessionStorage.getItem(ADMIN_UNLOCK_KEY) === 'true';
   },
 
   setUnlocked(): void {
     if (typeof window === 'undefined') return;
     sessionStorage.setItem(ADMIN_UNLOCK_KEY, 'true');
-  },
-
-  getPasskey(): string | null {
-    if (typeof window === 'undefined') return null;
-    return sessionStorage.getItem(ADMIN_PASSKEY_KEY);
-  },
-
-  setPasskey(passkey: string): void {
-    if (typeof window === 'undefined') return;
-    sessionStorage.setItem(ADMIN_PASSKEY_KEY, passkey);
-    // Automatically set unlocked when passkey is stored
-    sessionStorage.setItem(ADMIN_UNLOCK_KEY, 'true');
-  },
-
-  clearPasskey(): void {
-    if (typeof window === 'undefined') return;
-    sessionStorage.removeItem(ADMIN_PASSKEY_KEY);
-    // Also clear unlock state when passkey is cleared
-    sessionStorage.removeItem(ADMIN_UNLOCK_KEY);
+    this.notifyChange();
   },
 
   clear(): void {
     if (typeof window === 'undefined') return;
     sessionStorage.removeItem(ADMIN_UNLOCK_KEY);
-    sessionStorage.removeItem(ADMIN_PASSKEY_KEY);
     this.notifyChange();
   },
 
