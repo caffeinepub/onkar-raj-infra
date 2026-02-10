@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T14:13:16.000Z",
+  "generatedAt": "2026-02-10T08:17:00.474Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -11,54 +11,64 @@
     "implemented": 3,
     "items": [
       {
-        "id": "REQ-1",
-        "summary": "Rebuild the /admin/login flow to be passkey-only (no Internet Identity login) using the hard-coded passkey \"vEDANSH468\", and unlock admin access once per browser session via the existing sessionStorage-based admin session mechanism.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/admin/AdminLoginPage.tsx",
-          "frontend/src/utils/adminCredentials.ts",
-          "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/admin/AdminLoginPage.tsx",
-          "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx"
-        ]
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Update admin route protection to rely only on the admin session unlock state (sessionStorage) and redirect unauthenticated admin sessions to /admin/login, while keeping all admin dashboard pages and layout unchanged.",
+        "id": "REQ-4",
+        "summary": "Ensure that a successful admin passkey login actually unlocks access for all guarded admin pages (including Enquiries and Messages) by persisting the unlocked session state and redirecting to the originally requested admin route.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/pages/admin/AdminRouteGuard.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/pages/admin/AdminLoginPage.tsx",
+          "frontend/src/utils/adminSession.ts",
+          "frontend/src/utils/adminReturnPath.ts"
         ],
         "matchedFiles": [
-          "frontend/src/pages/admin/AdminRouteGuard.tsx"
+          "frontend/src/pages/admin/AdminRouteGuard.tsx",
+          "frontend/src/pages/admin/AdminLoginPage.tsx",
+          "frontend/src/utils/adminReturnPath.ts"
         ]
       },
       {
-        "id": "REQ-3",
-        "summary": "Refactor the admin passkey verification logic to remove the Internet Identity dependency from the passkey verification hook and ensure consistent session unlock/clear behavior (unlock on success; clear on any failure).",
+        "id": "REQ-5",
+        "summary": "Fix backend authorization initialization for admin-only data reads so that, after passkey unlock, admin data queries (enquiries/messages) can successfully call the backend without being blocked by missing access-control initialization.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useAuthz.ts",
-          "frontend/src/utils/adminSession.ts"
+          "frontend/src/hooks/useAdminActor.ts",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/admin/AdminMessagesPage.tsx",
+          "frontend/src/pages/admin/AdminEnquiriesPanel.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useAuthz.ts"
+          "frontend/src/hooks/useQueries.ts"
+        ]
+      },
+      {
+        "id": "REQ-6",
+        "summary": "Make React Query admin data screens reliably refresh after admin unlock so that enquiries and messages appear immediately after login without requiring a manual page refresh.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useAdminSession.ts",
+          "frontend/src/hooks/useAuthz.ts",
+          "frontend/src/hooks/useQueries.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useAdminSession.ts",
+          "frontend/src/hooks/useAuthz.ts",
+          "frontend/src/hooks/useQueries.ts"
         ]
       }
     ]
   },
   "changedFiles": [
     "build-request.json",
+    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/hooks/useAdminSession.ts",
     "frontend/src/hooks/useAuthz.ts",
+    "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/admin/AdminLoginPage.tsx",
     "frontend/src/pages/admin/AdminRouteGuard.tsx",
-    "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
+    "frontend/src/utils/adminReturnPath.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

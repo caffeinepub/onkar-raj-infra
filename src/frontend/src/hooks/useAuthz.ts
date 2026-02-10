@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
 import type { UserProfile } from '../backend';
 import { adminSession } from '../utils/adminSession';
@@ -18,6 +18,8 @@ export function useIsCallerAdmin() {
 }
 
 export function useVerifyAdminPasskey() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (passkey: string) => {
       try {
@@ -38,6 +40,14 @@ export function useVerifyAdminPasskey() {
 
         // Passkey is correct, unlock admin session
         adminSession.setUnlocked();
+        
+        // Invalidate actor to reinitialize with admin token
+        queryClient.invalidateQueries({ queryKey: ['actor'] });
+        
+        // Invalidate and refetch admin queries so they load immediately
+        queryClient.invalidateQueries({ queryKey: ['enquiries'] });
+        queryClient.invalidateQueries({ queryKey: ['messages'] });
+        queryClient.invalidateQueries({ queryKey: ['feedback'] });
         
         return true;
       } catch (error: any) {

@@ -1,36 +1,36 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Build a dedicated admin page login gate using a hard-coded passkey (vEDANSH468), required once per session, while keeping the existing admin page UI unchanged.",
+  "summary": "New project",
   "architectural_notes": [
-    "Admin authentication is a single hard-coded passkey (vEDANSH468), validated once per session, gating access to the existing admin page without changing its UI."
+    "Admin routes are protected by AdminRouteGuard which requires adminSession.isUnlocked() to be true; login flow must call adminSession.unlock() to grant access."
   ],
   "known_issues": [
-    "Current passkey flow fails during passkey entry for admin login (Version 21)."
+    "After admin login, enquiries/messages do not display due to 'no access'—admin session not unlocking for AdminRouteGuard."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-rebuild-the-admin-login-flow-to-be-passkey-only-no-internet-identity-login-using-the-hard-coded-passkey-vedansh468-and-unlock-admin-access-once-per-browser-session-via-the-existing-sessionstorage-based-admin-session-mechanism",
-      "title": "Rebuild the /admin/login flow to be passkey-only (no Internet Identity login) using the hard-coded passkey \"vEDANSH468\", and unlock admin access once per browser session via the existing sessionStorage-based admin session mechanism.",
+      "id": "feature-ensure-that-a-successful-admin-passkey-login-actually-unlocks-access-for-all-guarded-admin-pages-including-enquiries-and-messages-by-persisting-the-unlocked-session-state-and-redirecting-to-the-originally-requested-admin-route",
+      "title": "Ensure that a successful admin passkey login actually unlocks access for all guarded admin pages (including Enquiries and Messages) by persisting the unlocked session state and redirecting to the originally requested admin route.",
       "reqIds": [
-        "REQ-1"
+        "REQ-4"
       ],
       "version": 1
     },
     {
-      "id": "feature-update-admin-route-protection-to-rely-only-on-the-admin-session-unlock-state-sessionstorage-and-redirect-unauthenticated-admin-sessions-to-admin-login-while-keeping-all-admin-dashboard-pages-and-layout-unchanged",
-      "title": "Update admin route protection to rely only on the admin session unlock state (sessionStorage) and redirect unauthenticated admin sessions to /admin/login, while keeping all admin dashboard pages and layout unchanged.",
+      "id": "feature-fix-backend-authorization-initialization-for-admin-only-data-reads-so-that-after-passkey-unlock-admin-data-queries-enquiries-messages-can-successfully-call-the-backend-without-being-blocked-by-missing-access-control-initialization",
+      "title": "Fix backend authorization initialization for admin-only data reads so that, after passkey unlock, admin data queries (enquiries/messages) can successfully call the backend without being blocked by missing access-control initialization.",
       "reqIds": [
-        "REQ-2"
+        "REQ-5"
       ],
       "version": 1
     },
     {
-      "id": "feature-refactor-the-admin-passkey-verification-logic-to-remove-the-internet-identity-dependency-from-the-passkey-verification-hook-and-ensure-consistent-session-unlock-clear-behavior-unlock-on-success-clear-on-any-failure",
-      "title": "Refactor the admin passkey verification logic to remove the Internet Identity dependency from the passkey verification hook and ensure consistent session unlock/clear behavior (unlock on success; clear on any failure).",
+      "id": "feature-make-react-query-admin-data-screens-reliably-refresh-after-admin-unlock-so-that-enquiries-and-messages-appear-immediately-after-login-without-requiring-a-manual-page-refresh",
+      "title": "Make React Query admin data screens reliably refresh after admin unlock so that enquiries and messages appear immediately after login without requiring a manual page refresh.",
       "reqIds": [
-        "REQ-3"
+        "REQ-6"
       ],
       "version": 1
     }
@@ -38,12 +38,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Rebuild admin login using hard-coded passkey \"vEDANSH468\" on a dedicated admin page; require passkey once per session; keep existing admin page UI unchanged",
+      "summary": "Fix admin login/session so AdminRouteGuard unlocks and admin can view enquiries and messages after login",
       "reqIds": [],
-      "status": "in_progress"
+      "status": "pending"
     }
   ],
-  "projectName": "Fix failing admin passkey by rebuilding dedicated passkey-only admin login (once per session) without changing admin dashboard UI",
+  "projectName": "Fix admin passkey login so admin can view enquiries and messages",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

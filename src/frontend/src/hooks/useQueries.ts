@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
 import type { Product, Enquiry, SiteSettings, Feedback, Message } from '../backend';
-import { adminSession } from '../utils/adminSession';
+import { useAdminSession } from './useAdminSession';
 
 // Products
 export function useGetAllProducts() {
@@ -20,11 +20,12 @@ export function useGetAllProducts() {
 export function useAddProduct() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
+  const { isUnlocked } = useAdminSession();
 
   return useMutation({
     mutationFn: async (product: Product) => {
       if (!actor) throw new Error('Actor not available');
-      if (!adminSession.isUnlocked()) throw new Error('Admin session not unlocked');
+      if (!isUnlocked) throw new Error('Admin session not unlocked');
       try {
         return await actor.addProduct(product);
       } catch (error: any) {
@@ -44,12 +45,13 @@ export function useAddProduct() {
 // Enquiries
 export function useGetAllEnquiries() {
   const { actor, isFetching } = useActor();
+  const { isUnlocked } = useAdminSession();
 
   return useQuery<Enquiry[], Error>({
-    queryKey: ['enquiries'],
+    queryKey: ['enquiries', isUnlocked],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      if (!adminSession.isUnlocked()) throw new Error('Admin session not unlocked');
+      if (!isUnlocked) throw new Error('Admin session not unlocked');
       try {
         const result = await actor.getAllEnquiries();
         // Sort by timestamp descending (newest first)
@@ -62,7 +64,7 @@ export function useGetAllEnquiries() {
         throw new Error('Failed to load enquiries. Please try again.');
       }
     },
-    enabled: !!actor && !isFetching && adminSession.isUnlocked(),
+    enabled: !!actor && !isFetching && isUnlocked,
     retry: false,
   });
 }
@@ -106,6 +108,7 @@ export function useRejectEnquiry() {
 export function useSubmitEnquiry() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
+  const { isUnlocked } = useAdminSession();
 
   return useMutation({
     mutationFn: async (enquiry: Enquiry) => {
@@ -130,7 +133,7 @@ export function useSubmitEnquiry() {
     },
     onSuccess: () => {
       // Invalidate admin enquiries if session is unlocked
-      if (adminSession.isUnlocked()) {
+      if (isUnlocked) {
         queryClient.invalidateQueries({ queryKey: ['enquiries'] });
       }
     },
@@ -140,12 +143,13 @@ export function useSubmitEnquiry() {
 // Feedback
 export function useGetAllFeedback() {
   const { actor, isFetching } = useActor();
+  const { isUnlocked } = useAdminSession();
 
   return useQuery<Feedback[], Error>({
-    queryKey: ['feedback'],
+    queryKey: ['feedback', isUnlocked],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      if (!adminSession.isUnlocked()) throw new Error('Admin session not unlocked');
+      if (!isUnlocked) throw new Error('Admin session not unlocked');
       try {
         const result = await actor.getAllFeedback();
         // Sort by timestamp descending (newest first)
@@ -158,7 +162,7 @@ export function useGetAllFeedback() {
         throw new Error('Failed to load feedback. Please try again.');
       }
     },
-    enabled: !!actor && !isFetching && adminSession.isUnlocked(),
+    enabled: !!actor && !isFetching && isUnlocked,
     retry: false,
   });
 }
@@ -166,6 +170,7 @@ export function useGetAllFeedback() {
 export function useSubmitFeedback() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
+  const { isUnlocked } = useAdminSession();
 
   return useMutation({
     mutationFn: async (feedback: Feedback) => {
@@ -178,7 +183,7 @@ export function useSubmitFeedback() {
     },
     onSuccess: () => {
       // Invalidate admin feedback if session is unlocked
-      if (adminSession.isUnlocked()) {
+      if (isUnlocked) {
         queryClient.invalidateQueries({ queryKey: ['feedback'] });
       }
     },
@@ -188,12 +193,13 @@ export function useSubmitFeedback() {
 // Messages
 export function useGetAllMessages() {
   const { actor, isFetching } = useActor();
+  const { isUnlocked } = useAdminSession();
 
   return useQuery<Message[], Error>({
-    queryKey: ['messages'],
+    queryKey: ['messages', isUnlocked],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      if (!adminSession.isUnlocked()) throw new Error('Admin session not unlocked');
+      if (!isUnlocked) throw new Error('Admin session not unlocked');
       try {
         const result = await actor.getAllMessages();
         // Sort by timestamp descending (newest first)
@@ -206,7 +212,7 @@ export function useGetAllMessages() {
         throw new Error('Failed to load messages. Please try again.');
       }
     },
-    enabled: !!actor && !isFetching && adminSession.isUnlocked(),
+    enabled: !!actor && !isFetching && isUnlocked,
     retry: false,
   });
 }
@@ -214,6 +220,7 @@ export function useGetAllMessages() {
 export function useSendMessage() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
+  const { isUnlocked } = useAdminSession();
 
   return useMutation({
     mutationFn: async (message: Message) => {
@@ -226,7 +233,7 @@ export function useSendMessage() {
     },
     onSuccess: () => {
       // Invalidate admin messages if session is unlocked
-      if (adminSession.isUnlocked()) {
+      if (isUnlocked) {
         queryClient.invalidateQueries({ queryKey: ['messages'] });
       }
     },
@@ -250,11 +257,12 @@ export function useGetSiteSettings() {
 export function useUpdateSiteSettings() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
+  const { isUnlocked } = useAdminSession();
 
   return useMutation({
     mutationFn: async (settings: SiteSettings) => {
       if (!actor) throw new Error('Actor not available');
-      if (!adminSession.isUnlocked()) throw new Error('Admin session not unlocked');
+      if (!isUnlocked) throw new Error('Admin session not unlocked');
       try {
         return await actor.updateSiteSettings(settings);
       } catch (error: any) {

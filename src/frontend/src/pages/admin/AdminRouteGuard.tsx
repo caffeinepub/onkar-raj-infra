@@ -1,6 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from '@tanstack/react-router';
 import { adminSession } from '../../utils/adminSession';
+import { adminReturnPath } from '../../utils/adminReturnPath';
 
 interface AdminRouteGuardProps {
   children: ReactNode;
@@ -24,6 +25,8 @@ export default function AdminRouteGuard({ children }: AdminRouteGuardProps) {
   useEffect(() => {
     if (!isUnlocked && !hasRedirected) {
       setHasRedirected(true);
+      // Persist the return path in sessionStorage
+      adminReturnPath.set(location.pathname);
       navigate({ 
         to: '/admin/login',
         search: { returnPath: location.pathname },

@@ -2,11 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-rebuild-the-admin-login-flow-to-be-passkey-only-no-internet-identity-login-using-the-hard-coded-passkey-vedansh468-and-unlock-admin-access-once-per-browser-session-via-the-existing-sessionstorage-based-admin-session-mechanism",
-      "featureTitle": "Rebuild the /admin/login flow to be passkey-only (no Internet Identity login) using the hard-coded passkey \"vEDANSH468\", and unlock admin access once per browser session via the existing sessionStorage-based admin session mechanism.",
+      "featureId": "feature-ensure-that-a-successful-admin-passkey-login-actually-unlocks-access-for-all-guarded-admin-pages-including-enquiries-and-messages-by-persisting-the-unlocked-session-state-and-redirecting-to-the-originally-requested-admin-route",
+      "featureTitle": "Ensure that a successful admin passkey login actually unlocks access for all guarded admin pages (including Enquiries and Messages) by persisting the unlocked session state and redirecting to the originally requested admin route.",
       "files": [
         "frontend/src/pages/admin/AdminLoginPage.tsx",
-        "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx"
+        "frontend/src/pages/admin/AdminRouteGuard.tsx",
+        "frontend/src/utils/adminReturnPath.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -18,15 +19,15 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-1"
+        "REQ-4"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-update-admin-route-protection-to-rely-only-on-the-admin-session-unlock-state-sessionstorage-and-redirect-unauthenticated-admin-sessions-to-admin-login-while-keeping-all-admin-dashboard-pages-and-layout-unchanged",
-      "featureTitle": "Update admin route protection to rely only on the admin session unlock state (sessionStorage) and redirect unauthenticated admin sessions to /admin/login, while keeping all admin dashboard pages and layout unchanged.",
+      "featureId": "feature-fix-backend-authorization-initialization-for-admin-only-data-reads-so-that-after-passkey-unlock-admin-data-queries-enquiries-messages-can-successfully-call-the-backend-without-being-blocked-by-missing-access-control-initialization",
+      "featureTitle": "Fix backend authorization initialization for admin-only data reads so that, after passkey unlock, admin data queries (enquiries/messages) can successfully call the backend without being blocked by missing access-control initialization.",
       "files": [
-        "frontend/src/pages/admin/AdminRouteGuard.tsx"
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -38,15 +39,17 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-2"
+        "REQ-5"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-refactor-the-admin-passkey-verification-logic-to-remove-the-internet-identity-dependency-from-the-passkey-verification-hook-and-ensure-consistent-session-unlock-clear-behavior-unlock-on-success-clear-on-any-failure",
-      "featureTitle": "Refactor the admin passkey verification logic to remove the Internet Identity dependency from the passkey verification hook and ensure consistent session unlock/clear behavior (unlock on success; clear on any failure).",
+      "featureId": "feature-make-react-query-admin-data-screens-reliably-refresh-after-admin-unlock-so-that-enquiries-and-messages-appear-immediately-after-login-without-requiring-a-manual-page-refresh",
+      "featureTitle": "Make React Query admin data screens reliably refresh after admin unlock so that enquiries and messages appear immediately after login without requiring a manual page refresh.",
       "files": [
-        "frontend/src/hooks/useAuthz.ts"
+        "frontend/src/hooks/useAdminSession.ts",
+        "frontend/src/hooks/useAuthz.ts",
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -58,7 +61,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-3"
+        "REQ-6"
       ],
       "confidence": "high"
     }

@@ -1,96 +1,74 @@
 {
   "kind": "build_request",
-  "title": "Fix failing admin passkey by rebuilding dedicated passkey-only admin login (once per session) without changing admin dashboard UI",
+  "title": "Fix admin passkey login so admin can view enquiries and messages",
   "priority": "high",
   "requirements": [
     {
-      "id": "REQ-1",
-      "text": "Rebuild the /admin/login flow to be passkey-only (no Internet Identity login) using the hard-coded passkey \"vEDANSH468\", and unlock admin access once per browser session via the existing sessionStorage-based admin session mechanism.",
+      "id": "REQ-4",
+      "text": "Ensure that a successful admin passkey login actually unlocks access for all guarded admin pages (including Enquiries and Messages) by persisting the unlocked session state and redirecting to the originally requested admin route.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "passkey is failing\nplease fix it",
-          "during entering passkey for admin login",
-          "new",
-          "just the passkey i am giving you vEDANSH468",
-          "only passkey",
-          "once per session",
-          "a dedicated admin page",
-          "but the admin page should be same like what it is now",
+          "when i login into admin page, i need to see enquiries and messages i get it is now showing i have no access",
           "build"
         ]
       },
       "acceptanceCriteria": [
-        "Visiting /admin/login shows the existing passkey prompt UI and does not trigger Internet Identity login.",
-        "Entering the exact passkey \"vEDANSH468\" unlocks the admin session and redirects to the requested admin returnPath (or /admin/products when none is provided).",
-        "Entering an incorrect/empty passkey shows a clear error message and does not unlock the admin session.",
-        "After unlocking, refreshing the page keeps admin access until the browser session ends (sessionStorage cleared) or the user performs Admin Logout."
+        "Entering the correct passkey \"vEDANSH468\" on /admin/login results in the admin session being unlocked for the current browser session (sessionStorage) and the user being redirected to the returnPath (or a sensible default).",
+        "After successful login, visiting /admin/enquiries and /admin/messages does not show a 'no access' / unauthorized state due to the route guard still being locked.",
+        "If the passkey is incorrect or empty, the admin session remains cleared and the user stays on the login screen with an error message."
       ]
     },
     {
-      "id": "REQ-2",
-      "text": "Update admin route protection to rely only on the admin session unlock state (sessionStorage) and redirect unauthenticated admin sessions to /admin/login, while keeping all admin dashboard pages and layout unchanged.",
+      "id": "REQ-5",
+      "text": "Fix backend authorization initialization for admin-only data reads so that, after passkey unlock, admin data queries (enquiries/messages) can successfully call the backend without being blocked by missing access-control initialization.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "a dedicated admin page",
-          "once per session",
-          "but the admin page should be same like what it is now"
+          "it is now showing i have no access"
         ]
       },
       "acceptanceCriteria": [
-        "When admin session is locked, navigating directly to /admin, /admin/products, /admin/enquiries, /admin/feedback, or /admin/messages redirects to /admin/login with returnPath set to the originally requested path.",
-        "When admin session is unlocked, the admin routes render the current AdminLayoutPage and existing admin UI exactly as before (no layout/tab/content changes)."
+        "After passkey unlock, admin pages that call backend admin methods (at minimum: enquiries and messages) can load data successfully when a valid admin secret token is available via the existing caffeineAdminToken mechanism.",
+        "Anonymous (non-Internet-Identity) admin sessions are still able to initialize backend access control using the existing secret-token flow, so backend calls do not fail solely because the user is not authenticated with Internet Identity.",
+        "If no valid admin token is present, the UI shows a clear English error explaining that admin authorization is missing and that the admin token/passkey needs to be verified (no silent failure)."
       ]
     },
     {
-      "id": "REQ-3",
-      "text": "Refactor the admin passkey verification logic to remove the Internet Identity dependency from the passkey verification hook and ensure consistent session unlock/clear behavior (unlock on success; clear on any failure).",
+      "id": "REQ-6",
+      "text": "Make React Query admin data screens reliably refresh after admin unlock so that enquiries and messages appear immediately after login without requiring a manual page refresh.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "only passkey",
-          "new"
+          "when i login into admin page, i need to see enquiries and messages i get"
         ]
       },
       "acceptanceCriteria": [
-        "Admin passkey verification works without requiring an Internet Identity identity to be present.",
-        "On successful verification, adminSession.setUnlocked() is called and the UI proceeds to the admin dashboard.",
-        "On any verification error (invalid passkey, missing actor/connection, unexpected exception), adminSession.clear() is called and the user remains on the login prompt with an error shown."
+        "Immediately after a successful passkey unlock, the Enquiries and Messages admin pages load their data if the user is redirected there (no manual refresh required).",
+        "Admin unlock triggers a refetch/invalidation of the relevant admin queries (at minimum: ['enquiries'] and ['messages']) so previously disabled/blocked queries can run once unlocked."
       ]
     }
   ],
   "constraints": [
-    "Do not modify read-only frontend paths listed in SYSTEM_CONTEXT.frontend.immutablePaths.",
-    "Keep the existing admin dashboard UI (AdminLayoutPage and its rendered pages) visually and structurally the same; only change authentication/gating behavior.",
-    "Use English for all user-facing text."
+    "Do not edit any files under frontend/src/components/ui (shadcn UI components are read-only).",
+    "Do not modify immutable paths listed in SYSTEM_CONTEXT (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx). If changes are needed, implement them via new hooks/utilities or by adjusting non-immutable callers."
   ],
   "nonGoals": [
-    "Implementing or integrating third-party authentication providers (other than existing Internet Identity support).",
-    "Redesigning the admin dashboard UI, navigation, or admin feature set.",
-    "Adding real-time features or external databases/services."
+    "Implementing new admin features beyond fixing access (e.g., new tabs, new CRUD operations).",
+    "Changing the hard-coded passkey value (must remain \"vEDANSH468\").",
+    "Adding third-party authentication providers or any non-Internet-Computer auth integration."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

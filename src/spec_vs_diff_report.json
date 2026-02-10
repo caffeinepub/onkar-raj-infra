@@ -1,34 +1,52 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T14:13:15.996Z",
-  "summary": "Diff implements a sessionStorage-based, passkey-only admin unlock flow and route guarding via an AdminRouteGuard redirecting locked sessions to /admin/login with a returnPath, and refactors the passkey verification hook to clear/unlock adminSession appropriately without Internet Identity. One key requirement (hard-coding the specific passkey value) is not directly evidenced in the provided diff summary.",
+  "generatedAt": "2026-02-10T08:17:00.472Z",
+  "summary": "The diff implements an admin session unlock flow with return-path redirect and React Query invalidation/refetch on unlock, but it does not clearly implement the required backend admin-authorization initialization via the existing caffeineAdminToken mechanism, and it adds unrelated placeholder admin actions (confirm/reject enquiry) that go beyond the stated non-goals.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "Use the hard-coded passkey \"vEDANSH468\" for the /admin/login passkey-only flow.",
-      "reason": "The diff shows passkey verification delegated to verifyPasskey(trimmedPasskey) but does not show that verifyPasskey is implemented to validate specifically against \"vEDANSH468\"; the hard-coded value is not visible in the provided changes.",
+      "id": "REQ-5",
+      "requirement": "Fix backend authorization initialization for admin-only data reads so that, after passkey unlock, admin data queries (enquiries/messages) can successfully call the backend without being blocked by missing access-control initialization.",
+      "reason": "The changes show frontend passkey verification and React Query invalidations, but there is no clear implementation/evidence of initializing backend access control using the existing caffeineAdminToken secret-token flow for anonymous (non-Internet-Identity) sessions. The only related change is invalidating the ['actor'] query; the actual token-based authorization initialization is not shown.",
       "evidence": [
-        "frontend/src/hooks/useAuthz.ts (imports and calls verifyPasskey, but no literal \"vEDANSH468\" shown)"
+        "frontend/src/hooks/useAuthz.ts (invalidateQueries({ queryKey: ['actor'] }) but no caffeineAdminToken initialization shown)",
+        "frontend/src/hooks/useQueries.ts (enquiries query requires isUnlocked; no explicit token/authorization init shown)"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "requirement": "If no valid admin token is present, the UI shows a clear English error explaining that admin authorization is missing and that the admin token/passkey needs to be verified (no silent failure).",
+      "reason": "The enquiries hook throws generic errors ('Admin session not unlocked', 'Failed to load enquiries. Please try again.') and an 'Unauthorized' message referencing passkey, but there is no explicit error path/message tied to a missing/invalid admin token (caffeineAdminToken) as required.",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts (useGetAllEnquiries: errors are 'Admin session not unlocked', 'You do not have permission...verify your passkey.', 'Failed to load enquiries...')"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Deprecated useIsCallerAdmin behavior changed to return adminSession.isUnlocked() via React Query instead of performing a backend check.",
-      "reason": "BuildRequest focuses on rebuilding /admin/login and route protection; altering useIsCallerAdmin for backward compatibility is additional behavior not explicitly requested.",
+      "description": "Added placeholder 'confirm' and 'reject' enquiry mutations that simulate success and then throw 'not implemented' errors.",
+      "reason": "The BuildRequest explicitly lists as non-goals implementing new admin features beyond fixing access; these mutations introduce new admin operations/behavior unrelated to passkey login/access.",
       "evidence": [
-        "frontend/src/hooks/useAuthz.ts (useIsCallerAdmin marked deprecated and returns adminSession.isUnlocked())"
+        "frontend/src/hooks/useQueries.ts (useConfirmEnquiry, useRejectEnquiry)"
+      ]
+    },
+    {
+      "description": "Invalidation of an additional admin query key ['feedback'] during passkey verification.",
+      "reason": "REQ-6 only requires refetch/invalidation at minimum for ['enquiries'] and ['messages']; adding ['feedback'] is extra behavior not requested.",
+      "evidence": [
+        "frontend/src/hooks/useAuthz.ts (invalidateQueries for ['feedback'])"
       ]
     }
   ],
   "confidence": 0.62,
   "changed_files": [
     "frontend-file-summaries.txt",
+    "frontend/src/hooks/useAdminSession.ts",
     "frontend/src/hooks/useAuthz.ts",
+    "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/admin/AdminLoginPage.tsx",
     "frontend/src/pages/admin/AdminRouteGuard.tsx",
-    "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
+    "frontend/src/utils/adminReturnPath.ts",
     "project_state.json"
   ]
 }
