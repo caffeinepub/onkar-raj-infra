@@ -1,36 +1,29 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "App with admin access via a shared passkey on the admin page; Version 25 has an access regression blocking enquiries/messages and needs restoration of full admin rights when the correct passkey is entered.",
   "architectural_notes": [
-    "Admin routes are protected by AdminRouteGuard which requires adminSession.isUnlocked() to be true; login flow must call adminSession.unlock() to grant access."
+    "Admin access is granted via a single shared passkey entered on the existing admin page; correct passkey unlocks full admin rights across the app.",
+    "Admin passkey is hard-coded to \"vEDANSH468\" (no in-app change mechanism)."
   ],
   "known_issues": [
-    "After admin login, enquiries/messages do not display due to 'no access'—admin session not unlocking for AdminRouteGuard."
+    "Version 25 shows \"you don't have access to see enquiries and messages\" even for intended admin users (regression in admin access control)."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-ensure-that-a-successful-admin-passkey-login-actually-unlocks-access-for-all-guarded-admin-pages-including-enquiries-and-messages-by-persisting-the-unlocked-session-state-and-redirecting-to-the-originally-requested-admin-route",
-      "title": "Ensure that a successful admin passkey login actually unlocks access for all guarded admin pages (including Enquiries and Messages) by persisting the unlocked session state and redirecting to the originally requested admin route.",
+      "id": "feature-when-a-user-enters-the-correct-admin-passkey-on-the-existing-admin-login-page-unlock-full-admin-access-across-the-app-including-enquiries-and-messages-for-that-user-session",
+      "title": "When a user enters the correct admin passkey on the existing admin login page, unlock full admin access across the app (including enquiries and messages) for that user session.",
       "reqIds": [
-        "REQ-4"
+        "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-fix-backend-authorization-initialization-for-admin-only-data-reads-so-that-after-passkey-unlock-admin-data-queries-enquiries-messages-can-successfully-call-the-backend-without-being-blocked-by-missing-access-control-initialization",
-      "title": "Fix backend authorization initialization for admin-only data reads so that, after passkey unlock, admin data queries (enquiries/messages) can successfully call the backend without being blocked by missing access-control initialization.",
+      "id": "feature-fix-the-regression-causing-unauthorized-no-access-errors-for-admin-only-backend-methods-by-ensuring-the-passkey-verification-flow-also-authenticates-the-caller-with-the-backend-s-admin-authorization-mechanism",
+      "title": "Fix the regression causing \"Unauthorized\"/\"no access\" errors for admin-only backend methods by ensuring the passkey verification flow also authenticates the caller with the backend’s admin authorization mechanism.",
       "reqIds": [
-        "REQ-5"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-make-react-query-admin-data-screens-reliably-refresh-after-admin-unlock-so-that-enquiries-and-messages-appear-immediately-after-login-without-requiring-a-manual-page-refresh",
-      "title": "Make React Query admin data screens reliably refresh after admin unlock so that enquiries and messages appear immediately after login without requiring a manual page refresh.",
-      "reqIds": [
-        "REQ-6"
+        "REQ-2"
       ],
       "version": 1
     }
@@ -38,12 +31,20 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Fix admin login/session so AdminRouteGuard unlocks and admin can view enquiries and messages after login",
+      "summary": "Restore full admin access (including enquiries/messages) for all users who enter the correct admin passkey on the admin page; passkey is hard-coded to vEDANSH468.",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Keep the admin passkey hard-coded as \"vEDANSH468\" and do not add any UI or settings to change it.",
+      "reqIds": [
+        "REQ-3"
+      ],
       "status": "pending"
     }
   ],
-  "projectName": "Fix admin passkey login so admin can view enquiries and messages",
+  "projectName": "Restore admin access for enquiries and messages using shared passkey (vEDANSH468)",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

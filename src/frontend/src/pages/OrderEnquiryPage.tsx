@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useSubmitEnquiry, useGetPriceForDiameter } from '../hooks/useQueries';
+import { useActor } from '../hooks/useActor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { ExternalBlob, OrderType } from '../backend';
 import { Loader2, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -20,7 +22,11 @@ export default function OrderEnquiryPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [connectionChecked, setConnectionChecked] = useState(false);
 
+  const actorState = useActor();
+  const actor = actorState.actor;
+  const isFetching = actorState.isFetching;
   const submitEnquiry = useSubmitEnquiry();
   const { data: estimatedPrice } = useGetPriceForDiameter(pipeDiameter);
 
@@ -28,13 +34,24 @@ export default function OrderEnquiryPage() {
     document.title = 'Order / Enquiry - Onkar Raj Infra';
   }, []);
 
+  // Check connection status after initial load
+  useEffect(() => {
+    if (!isFetching && !connectionChecked) {
+      setConnectionChecked(true);
+    }
+  }, [isFetching, connectionChecked]);
+
   const diameters = [
     '20mm', '25mm', '32mm', '40mm', '50mm', '63mm', '75mm', '90mm',
-    '110mm', '125mm', '140mm', '160mm', '180mm'
+    '110mm', '125mm', '140mm', '160mm', '180mm', '200mm'
   ];
 
   const quantityNum = parseInt(quantity);
   const isBelowMinimum = quantity !== '' && !isNaN(quantityNum) && quantityNum < MINIMUM_ORDER_QUANTITY;
+
+  const isConnecting = isFetching && !actor;
+  const isConnectionError = connectionChecked && !actor && !isFetching;
+  const isFormDisabled = isConnecting || isConnectionError || submitEnquiry.isPending;
 
   const handleSubmit = async (orderType: OrderType) => {
     if (!customerName.trim() || !phoneNumber.trim() || !email.trim() || !pipeDiameter || !quantity) {
@@ -126,6 +143,24 @@ export default function OrderEnquiryPage() {
           </p>
         </div>
 
+        {isConnectionError && (
+          <Alert variant="destructive" className="mx-auto max-w-2xl mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Unable to connect to the service. Please refresh the page and try again.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {isConnecting && (
+          <Alert className="mx-auto max-w-2xl mb-6">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <AlertDescription>
+              Connecting to the service...
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Card className="mx-auto max-w-2xl">
           <CardHeader>
             <CardTitle>Submit Your Request</CardTitle>
@@ -141,6 +176,7 @@ export default function OrderEnquiryPage() {
                 placeholder="Enter your name"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
+                disabled={isFormDisabled}
               />
             </div>
 
@@ -152,6 +188,7 @@ export default function OrderEnquiryPage() {
                 placeholder="Enter your phone number"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
+                disabled={isFormDisabled}
               />
             </div>
 
@@ -163,12 +200,13 @@ export default function OrderEnquiryPage() {
                 placeholder="your.email@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={isFormDisabled}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="pipeDiameter">Pipe Diameter *</Label>
-              <Select value={pipeDiameter} onValueChange={setPipeDiameter}>
+              <Select value={pipeDiameter} onValueChange={setPipeDiameter} disabled={isFormDisabled}>
                 <SelectTrigger id="pipeDiameter">
                   <SelectValue placeholder="Select diameter" />
                 </SelectTrigger>
@@ -187,30 +225,23 @@ export default function OrderEnquiryPage() {
               <Input
                 id="quantity"
                 type="number"
-                min={MINIMUM_ORDER_QUANTITY}
-                placeholder="Enter quantity"
+                placeholder={`Minimum ${MINIMUM_ORDER_QUANTITY} meters`}
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
+                min={MINIMUM_ORDER_QUANTITY}
+                disabled={isFormDisabled}
               />
               {isBelowMinimum && (
-                <div className="flex items-center gap-2 text-sm text-destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>Minimum Order Quantity- {MINIMUM_ORDER_QUANTITY} meters</span>
-                </div>
+                <p className="text-sm text-destructive">
+                  Minimum order quantity is {MINIMUM_ORDER_QUANTITY} meters
+                </p>
+              )}
+              {estimatedPrice && quantity && !isBelowMinimum && (
+                <p className="text-sm text-muted-foreground">
+                  Estimated price: ₹{(estimatedPrice * quantityNum).toLocaleString('en-IN')}
+                </p>
               )}
             </div>
-
-            {estimatedPrice && quantity && (
-              <div className="rounded-lg bg-muted p-4">
-                <p className="text-sm text-muted-foreground">Estimated Price</p>
-                <p className="text-2xl font-bold">
-                  ₹{(estimatedPrice * parseInt(quantity || '0')).toFixed(2)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  (₹{estimatedPrice.toFixed(2)} per meter)
-                </p>
-              </div>
-            )}
 
             <div className="space-y-2">
               <Label htmlFor="file">Requirements File (Optional)</Label>
@@ -219,13 +250,31 @@ export default function OrderEnquiryPage() {
                   id="file"
                   type="file"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                  disabled={isFormDisabled}
                   className="flex-1"
                 />
-                {file && <Upload className="h-4 w-4 text-primary" />}
+                {file && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFile(null)}
+                    disabled={isFormDisabled}
+                  >
+                    Clear
+                  </Button>
+                )}
               </div>
               {uploadProgress > 0 && uploadProgress < 100 && (
-                <div className="text-sm text-muted-foreground">
-                  Uploading: {uploadProgress}%
+                <div className="space-y-1">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                    <div
+                      className="h-full bg-primary transition-all"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Uploading: {uploadProgress}%</p>
                 </div>
               )}
             </div>
@@ -233,7 +282,7 @@ export default function OrderEnquiryPage() {
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button
                 onClick={() => handleSubmit(OrderType.placeOrder)}
-                disabled={submitEnquiry.isPending || isBelowMinimum}
+                disabled={isFormDisabled || isBelowMinimum}
                 className="flex-1"
               >
                 {submitEnquiry.isPending ? (
@@ -241,13 +290,18 @@ export default function OrderEnquiryPage() {
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Submitting...
                   </>
+                ) : isConnecting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Connecting...
+                  </>
                 ) : (
                   'Place Order'
                 )}
               </Button>
               <Button
                 onClick={() => handleSubmit(OrderType.requestQuote)}
-                disabled={submitEnquiry.isPending || isBelowMinimum}
+                disabled={isFormDisabled || isBelowMinimum}
                 variant="outline"
                 className="flex-1"
               >
@@ -255,6 +309,11 @@ export default function OrderEnquiryPage() {
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Submitting...
+                  </>
+                ) : isConnecting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Connecting...
                   </>
                 ) : (
                   'Request Quote'

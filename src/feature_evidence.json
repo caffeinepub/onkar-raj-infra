@@ -2,12 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-ensure-that-a-successful-admin-passkey-login-actually-unlocks-access-for-all-guarded-admin-pages-including-enquiries-and-messages-by-persisting-the-unlocked-session-state-and-redirecting-to-the-originally-requested-admin-route",
-      "featureTitle": "Ensure that a successful admin passkey login actually unlocks access for all guarded admin pages (including Enquiries and Messages) by persisting the unlocked session state and redirecting to the originally requested admin route.",
+      "featureId": "feature-when-a-user-enters-the-correct-admin-passkey-on-the-existing-admin-login-page-unlock-full-admin-access-across-the-app-including-enquiries-and-messages-for-that-user-session",
+      "featureTitle": "When a user enters the correct admin passkey on the existing admin login page, unlock full admin access across the app (including enquiries and messages) for that user session.",
       "files": [
-        "frontend/src/pages/admin/AdminLoginPage.tsx",
-        "frontend/src/pages/admin/AdminRouteGuard.tsx",
-        "frontend/src/utils/adminReturnPath.ts"
+        "frontend/src/hooks/useAuthz.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -19,37 +17,17 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-4"
+        "REQ-1"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-fix-backend-authorization-initialization-for-admin-only-data-reads-so-that-after-passkey-unlock-admin-data-queries-enquiries-messages-can-successfully-call-the-backend-without-being-blocked-by-missing-access-control-initialization",
-      "featureTitle": "Fix backend authorization initialization for admin-only data reads so that, after passkey unlock, admin data queries (enquiries/messages) can successfully call the backend without being blocked by missing access-control initialization.",
+      "featureId": "feature-fix-the-regression-causing-unauthorized-no-access-errors-for-admin-only-backend-methods-by-ensuring-the-passkey-verification-flow-also-authenticates-the-caller-with-the-backend-s-admin-authorization-mechanism",
+      "featureTitle": "Fix the regression causing \"Unauthorized\"/\"no access\" errors for admin-only backend methods by ensuring the passkey verification flow also authenticates the caller with the backend’s admin authorization mechanism.",
       "files": [
-        "frontend/src/hooks/useQueries.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-5"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-make-react-query-admin-data-screens-reliably-refresh-after-admin-unlock-so-that-enquiries-and-messages-appear-immediately-after-login-without-requiring-a-manual-page-refresh",
-      "featureTitle": "Make React Query admin data screens reliably refresh after admin unlock so that enquiries and messages appear immediately after login without requiring a manual page refresh.",
-      "files": [
-        "frontend/src/hooks/useAdminSession.ts",
         "frontend/src/hooks/useAuthz.ts",
-        "frontend/src/hooks/useQueries.ts"
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -61,7 +39,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-6"
+        "REQ-2"
       ],
       "confidence": "high"
     }

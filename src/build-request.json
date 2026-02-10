@@ -1,74 +1,88 @@
 {
   "kind": "build_request",
-  "title": "Fix admin passkey login so admin can view enquiries and messages",
+  "title": "Restore admin access for enquiries and messages using shared passkey (vEDANSH468)",
   "priority": "high",
   "requirements": [
     {
-      "id": "REQ-4",
-      "text": "Ensure that a successful admin passkey login actually unlocks access for all guarded admin pages (including Enquiries and Messages) by persisting the unlocked session state and redirecting to the originally requested admin route.",
-      "target": "frontend",
+      "id": "REQ-1",
+      "text": "When a user enters the correct admin passkey on the existing admin login page, unlock full admin access across the app (including enquiries and messages) for that user session.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-1"
+          "recent-messages"
         ],
         "quotes": [
-          "when i login into admin page, i need to see enquiries and messages i get it is now showing i have no access",
-          "build"
+          "all users who type correct passkey to get admin access",
+          "in admin page, it is already there",
+          "full admin rights",
+          "vEDANSH468"
         ]
       },
       "acceptanceCriteria": [
-        "Entering the correct passkey \"vEDANSH468\" on /admin/login results in the admin session being unlocked for the current browser session (sessionStorage) and the user being redirected to the returnPath (or a sensible default).",
-        "After successful login, visiting /admin/enquiries and /admin/messages does not show a 'no access' / unauthorized state due to the route guard still being locked.",
-        "If the passkey is incorrect or empty, the admin session remains cleared and the user stays on the login screen with an error message."
+        "Entering passkey \"vEDANSH468\" on the admin login page results in the user being treated as admin for the remainder of the browser session (until logout/session clear).",
+        "After successful passkey entry, navigating to /admin/enquiries and /admin/messages loads the data instead of showing an access/permission error.",
+        "Admin access applies to other admin-only operations already present (e.g., add product, update settings), not only enquiries/messages."
       ]
     },
     {
-      "id": "REQ-5",
-      "text": "Fix backend authorization initialization for admin-only data reads so that, after passkey unlock, admin data queries (enquiries/messages) can successfully call the backend without being blocked by missing access-control initialization.",
-      "target": "frontend",
+      "id": "REQ-2",
+      "text": "Fix the regression causing \"Unauthorized\"/\"no access\" errors for admin-only backend methods by ensuring the passkey verification flow also authenticates the caller with the backend’s admin authorization mechanism.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-1"
+          "recent-messages"
         ],
         "quotes": [
-          "it is now showing i have no access"
+          "in version 25 now its showing u dont have access to see enquiries and messages"
         ]
       },
       "acceptanceCriteria": [
-        "After passkey unlock, admin pages that call backend admin methods (at minimum: enquiries and messages) can load data successfully when a valid admin secret token is available via the existing caffeineAdminToken mechanism.",
-        "Anonymous (non-Internet-Identity) admin sessions are still able to initialize backend access control using the existing secret-token flow, so backend calls do not fail solely because the user is not authenticated with Internet Identity.",
-        "If no valid admin token is present, the UI shows a clear English error explaining that admin authorization is missing and that the admin token/passkey needs to be verified (no silent failure)."
+        "After successful passkey verification, the frontend calls the backend admin authentication method so that backend calls like getAllEnquiries() and getAllMessages() no longer trap with Unauthorized for that caller.",
+        "If the passkey is incorrect, the admin session remains locked and backend admin authentication is not granted.",
+        "If the passkey is empty/whitespace, the admin session remains locked and a user-facing error is shown (in English)."
       ]
     },
     {
-      "id": "REQ-6",
-      "text": "Make React Query admin data screens reliably refresh after admin unlock so that enquiries and messages appear immediately after login without requiring a manual page refresh.",
+      "id": "REQ-3",
+      "text": "Keep the admin passkey hard-coded as \"vEDANSH468\" and do not add any UI or settings to change it.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "recent-messages"
         ],
         "quotes": [
-          "when i login into admin page, i need to see enquiries and messages i get"
+          "vEDANSH468",
+          "no change"
         ]
       },
       "acceptanceCriteria": [
-        "Immediately after a successful passkey unlock, the Enquiries and Messages admin pages load their data if the user is redirected there (no manual refresh required).",
-        "Admin unlock triggers a refetch/invalidation of the relevant admin queries (at minimum: ['enquiries'] and ['messages']) so previously disabled/blocked queries can run once unlocked."
+        "The admin passkey constant remains \"vEDANSH468\".",
+        "There is no admin UI to edit/rotate the passkey."
       ]
     }
   ],
   "constraints": [
-    "Do not edit any files under frontend/src/components/ui (shadcn UI components are read-only).",
-    "Do not modify immutable paths listed in SYSTEM_CONTEXT (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx). If changes are needed, implement them via new hooks/utilities or by adjusting non-immutable callers."
+    "Frontend immutable paths must not be edited: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui.",
+    "Backend must remain a single Motoko actor with logic in backend/main.mo.",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Implementing new admin features beyond fixing access (e.g., new tabs, new CRUD operations).",
-    "Changing the hard-coded passkey value (must remain \"vEDANSH468\").",
-    "Adding third-party authentication providers or any non-Internet-Computer auth integration."
+    "Adding role management UI (multiple roles/users) beyond the shared passkey behavior.",
+    "Implementing third-party authentication providers (only Internet Identity is supported).",
+    "Adding new admin features unrelated to restoring access (e.g., new dashboards, exports, analytics)."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

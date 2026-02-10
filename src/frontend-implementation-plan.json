@@ -1,92 +1,72 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix admin passkey unlock, admin token initialization, and admin React Query refresh",
+  "title": "Restore admin access for enquiries/messages via shared passkey and backend admin authentication",
   "requirements": [
     {
-      "id": "REQ-4",
-      "summary": "Persist admin unlock state in sessionStorage and reliably redirect back to the originally requested guarded admin route after successful passkey login.",
+      "id": "REQ-1",
+      "summary": "Unlock admin access for the browser session after correct passkey entry, enabling navigation to all admin pages including enquiries and messages.",
       "acceptanceCriteria": [
-        "Entering the correct passkey \"vEDANSH468\" on /admin/login results in the admin session being unlocked for the current browser session (sessionStorage) and the user being redirected to the returnPath (or a sensible default).",
-        "After successful login, visiting /admin/enquiries and /admin/messages does not show a 'no access' / unauthorized state due to the route guard still being locked.",
-        "If the passkey is incorrect or empty, the admin session remains cleared and the user stays on the login screen with an error message."
+        "Entering passkey \"vEDANSH468\" on the admin login page results in the user being treated as admin for the remainder of the browser session (until logout/session clear).",
+        "After successful passkey entry, navigating to /admin/enquiries and /admin/messages loads the data instead of showing an access/permission error.",
+        "Admin access applies to other admin-only operations already present (e.g., add product, update settings), not only enquiries/messages."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/admin/AdminRouteGuard.tsx",
+          "path": "frontend/src/hooks/useAuthz.ts",
           "operation": "modify",
-          "description": "Ensure the guard persists the originally requested admin path (returnPath) into sessionStorage before redirecting to /admin/login, and consistently passes/uses returnPath when navigating to login so post-unlock navigation returns to the correct admin page."
+          "description": "Update the passkey verification mutation to unlock the frontend admin session only after successful backend-side admin authentication, so all admin-only reads/writes (enquiries/messages/products/settings) work for the remainder of the session. Use the selected \"authorization\" component’s backend-backed admin mechanism via the existing backendInterface.authenticateAdmin(passkey) call (verify the component's usage instructions before implementing)."
         },
         {
           "path": "frontend/src/pages/admin/AdminLoginPage.tsx",
           "operation": "modify",
-          "description": "After successful passkey verification, redirect to (1) search.returnPath if present, else (2) the persisted sessionStorage returnPath set by the guard, else (3) a sensible default like /admin/products; clear the persisted returnPath after use to avoid stale redirects."
+          "description": "Ensure the existing admin login flow redirects only after the updated verification/authentication completes successfully, preserving return-path behavior for /admin/enquiries and /admin/messages."
         },
         {
-          "path": "frontend/src/utils/adminSession.ts",
+          "path": "frontend/src/pages/admin/AdminRouteGuard.tsx",
           "operation": "modify",
-          "description": "Confirm admin unlock state changes are always broadcast to listeners (including setUnlocked and clear paths) so guarded routes react immediately to session unlock/lock transitions."
-        },
-        {
-          "path": "frontend/src/utils/adminReturnPath.ts",
-          "operation": "create",
-          "description": "Add a small utility to set/get/clear the admin returnPath in sessionStorage to support redirecting back to the originally requested guarded admin route."
+          "description": "Confirm the guard continues to rely on the session unlock state and cleanly redirects locked sessions to /admin/login with the stored return path, ensuring admin pages are not accessible until unlock."
         }
       ]
     },
     {
-      "id": "REQ-5",
-      "summary": "Initialize admin-only backend access control for admin data reads using the existing caffeineAdminToken secret-token flow even for anonymous sessions, and show clear errors when authorization is missing.",
+      "id": "REQ-2",
+      "summary": "Fix Unauthorized errors by calling backend admin authentication after passkey verification, and enforce correct error handling for empty/invalid passkeys.",
       "acceptanceCriteria": [
-        "After passkey unlock, admin pages that call backend admin methods (at minimum: enquiries and messages) can load data successfully when a valid admin secret token is available via the existing caffeineAdminToken mechanism.",
-        "Anonymous (non-Internet-Identity) admin sessions are still able to initialize backend access control using the existing secret-token flow, so backend calls do not fail solely because the user is not authenticated with Internet Identity.",
-        "If no valid admin token is present, the UI shows a clear English error explaining that admin authorization is missing and that the admin token/passkey needs to be verified (no silent failure)."
+        "After successful passkey verification, the frontend calls the backend admin authentication method so that backend calls like getAllEnquiries() and getAllMessages() no longer trap with Unauthorized for that caller.",
+        "If the passkey is incorrect, the admin session remains locked and backend admin authentication is not granted.",
+        "If the passkey is empty/whitespace, the admin session remains locked and a user-facing error is shown (in English)."
       ],
       "file_operations": [
-        {
-          "path": "frontend/src/hooks/useAdminActor.ts",
-          "operation": "create",
-          "description": "Create a dedicated admin actor hook that builds an actor (without relying on Internet Identity), reads the secret token via the existing caffeineAdminToken mechanism (getSecretParameter('caffeineAdminToken')), and initializes backend access control via the actor’s existing secret-token initialization function; if token is missing, return an explicit error state to power clear UI messaging."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Update admin-only query hooks (at minimum: enquiries and messages) to use the admin actor initialization path (useAdminActor) once the admin session is unlocked, so admin data reads can succeed even when not authenticated with Internet Identity; ensure missing-token failures surface a clear English error message about admin authorization being missing."
-        },
-        {
-          "path": "frontend/src/pages/admin/AdminMessagesPage.tsx",
-          "operation": "modify",
-          "description": "Ensure the messages screen renders the improved authorization-missing error text from the updated query hook (no silent/ambiguous failure), while preserving existing loading/empty states."
-        },
-        {
-          "path": "frontend/src/pages/admin/AdminEnquiriesPanel.tsx",
-          "operation": "modify",
-          "description": "Ensure the enquiries screen renders the improved authorization-missing error text from the updated query hook (no silent/ambiguous failure), while preserving existing loading/empty states."
-        }
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "summary": "Make admin React Query data reliably refetch immediately after passkey unlock so Enquiries and Messages appear without manual refresh.",
-      "acceptanceCriteria": [
-        "Immediately after a successful passkey unlock, the Enquiries and Messages admin pages load their data if the user is redirected there (no manual refresh required).",
-        "Admin unlock triggers a refetch/invalidation of the relevant admin queries (at minimum: ['enquiries'] and ['messages']) so previously disabled/blocked queries can run once unlocked."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useAdminSession.ts",
-          "operation": "create",
-          "description": "Add a small hook that subscribes to adminSession change notifications and exposes a reactive isUnlocked boolean so components/hooks re-render when the unlock state changes."
-        },
         {
           "path": "frontend/src/hooks/useAuthz.ts",
           "operation": "modify",
-          "description": "Update the passkey verification mutation to, on successful unlock, invalidate/refetch relevant admin queries (at minimum: ['enquiries'] and ['messages']) via React Query’s queryClient so redirected admin screens load immediately; keep error paths clearing the admin session."
+          "description": "Implement the regression fix: after locally validating the passkey, require an authenticated Internet Identity session and call actor.authenticateAdmin(trimmedPasskey). Only set adminSession unlocked after this call succeeds; on any failure, clear adminSession and surface English errors. This integrates with the selected \"authorization\" component’s admin authorization flow (verify the component's usage instructions before implementing)."
+        },
+        {
+          "path": "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
+          "operation": "modify",
+          "description": "Adjust the prompt UX to support the new backend-authenticated flow: display a clear English error when passkey is empty/whitespace, and (if needed) show an English message that the user must be logged in with Internet Identity before admin access can be granted."
         },
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Use the reactive admin unlock state (useAdminSession) in admin query hooks so the enabled flag and/or queryKey responds immediately to unlock; ensure this causes enquiries/messages to start fetching right after unlock without a manual refresh."
+          "description": "Align admin query error messages with the backend-authenticated admin flow: keep English user-facing messages, and ensure Unauthorized-like failures instruct the user to log in and verify the passkey without exposing internal details."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Keep the shared admin passkey hard-coded as vEDANSH468 with no UI/settings to change it.",
+      "acceptanceCriteria": [
+        "The admin passkey constant remains \"vEDANSH468\".",
+        "There is no admin UI to edit/rotate the passkey."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/utils/adminCredentials.ts",
+          "operation": "modify",
+          "description": "Ensure the hard-coded ADMIN_PASSKEY remains exactly \"vEDANSH468\" and is only used for local verification; do not add any functionality or exports that would enable editing/rotating the passkey via UI or settings."
         }
       ]
     }

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
 import type { Product, Enquiry, SiteSettings, Feedback, Message } from '../backend';
 import { useAdminSession } from './useAdminSession';
+import { waitForActorReady } from './useActorReady';
 
 // Products
 export function useGetAllProducts() {
@@ -31,7 +32,7 @@ export function useAddProduct() {
       } catch (error: any) {
         // Transform backend errors into user-friendly messages
         if (error.message && error.message.includes('Unauthorized')) {
-          throw new Error('Unauthorized: Admin access required');
+          throw new Error('You do not have permission to add products. Please log in and verify your passkey.');
         }
         throw error;
       }
@@ -59,7 +60,7 @@ export function useGetAllEnquiries() {
       } catch (error: any) {
         // Transform backend errors into user-friendly messages
         if (error.message && error.message.includes('Unauthorized')) {
-          throw new Error('You do not have permission to view enquiries. Please verify your passkey.');
+          throw new Error('You do not have permission to view enquiries. Please log in and verify your passkey.');
         }
         throw new Error('Failed to load enquiries. Please try again.');
       }
@@ -106,15 +107,28 @@ export function useRejectEnquiry() {
 }
 
 export function useSubmitEnquiry() {
-  const { actor } = useActor();
+  const { actor, isFetching } = useActor();
   const queryClient = useQueryClient();
   const { isUnlocked } = useAdminSession();
 
   return useMutation({
     mutationFn: async (enquiry: Enquiry) => {
-      if (!actor) throw new Error('Actor not available');
+      // Wait for actor to be ready (public mutation, no admin check)
+      let readyActor = actor;
+      if (!readyActor) {
+        try {
+          readyActor = await waitForActorReady(() => actor, () => isFetching, 15000);
+        } catch (error: any) {
+          throw new Error('Unable to connect to the service. Please refresh the page and try again.');
+        }
+      }
+
+      if (!readyActor) {
+        throw new Error('Unable to connect to the service. Please refresh the page and try again.');
+      }
+
       try {
-        await actor.submitEnquiry(enquiry);
+        await readyActor.submitEnquiry(enquiry);
       } catch (error: any) {
         // Transform backend errors into user-friendly messages
         if (error.message) {
@@ -128,6 +142,7 @@ export function useSubmitEnquiry() {
             throw new Error('Minimum order quantity is 2000 meters');
           }
         }
+        console.error('Submit enquiry error:', error);
         throw new Error('Failed to submit enquiry. Please try again.');
       }
     },
@@ -157,7 +172,7 @@ export function useGetAllFeedback() {
       } catch (error: any) {
         // Transform backend errors into user-friendly messages
         if (error.message && error.message.includes('Unauthorized')) {
-          throw new Error('You do not have permission to view feedback. Please verify your passkey.');
+          throw new Error('You do not have permission to view feedback. Please log in and verify your passkey.');
         }
         throw new Error('Failed to load feedback. Please try again.');
       }
@@ -168,16 +183,30 @@ export function useGetAllFeedback() {
 }
 
 export function useSubmitFeedback() {
-  const { actor } = useActor();
+  const { actor, isFetching } = useActor();
   const queryClient = useQueryClient();
   const { isUnlocked } = useAdminSession();
 
   return useMutation({
     mutationFn: async (feedback: Feedback) => {
-      if (!actor) throw new Error('Actor not available');
+      // Wait for actor to be ready (public mutation, no admin check)
+      let readyActor = actor;
+      if (!readyActor) {
+        try {
+          readyActor = await waitForActorReady(() => actor, () => isFetching, 15000);
+        } catch (error: any) {
+          throw new Error('Unable to connect to the service. Please refresh the page and try again.');
+        }
+      }
+
+      if (!readyActor) {
+        throw new Error('Unable to connect to the service. Please refresh the page and try again.');
+      }
+
       try {
-        await actor.submitFeedback(feedback);
+        await readyActor.submitFeedback(feedback);
       } catch (error: any) {
+        console.error('Submit feedback error:', error);
         throw new Error('Failed to submit feedback. Please try again.');
       }
     },
@@ -207,7 +236,7 @@ export function useGetAllMessages() {
       } catch (error: any) {
         // Transform backend errors into user-friendly messages
         if (error.message && error.message.includes('Unauthorized')) {
-          throw new Error('You do not have permission to view messages. Please verify your passkey.');
+          throw new Error('You do not have permission to view messages. Please log in and verify your passkey.');
         }
         throw new Error('Failed to load messages. Please try again.');
       }
@@ -218,16 +247,30 @@ export function useGetAllMessages() {
 }
 
 export function useSendMessage() {
-  const { actor } = useActor();
+  const { actor, isFetching } = useActor();
   const queryClient = useQueryClient();
   const { isUnlocked } = useAdminSession();
 
   return useMutation({
     mutationFn: async (message: Message) => {
-      if (!actor) throw new Error('Actor not available');
+      // Wait for actor to be ready (public mutation, no admin check)
+      let readyActor = actor;
+      if (!readyActor) {
+        try {
+          readyActor = await waitForActorReady(() => actor, () => isFetching, 15000);
+        } catch (error: any) {
+          throw new Error('Unable to connect to the service. Please refresh the page and try again.');
+        }
+      }
+
+      if (!readyActor) {
+        throw new Error('Unable to connect to the service. Please refresh the page and try again.');
+      }
+
       try {
-        await actor.sendMessage(message);
+        await readyActor.sendMessage(message);
       } catch (error: any) {
+        console.error('Send message error:', error);
         throw new Error('Failed to send message. Please try again.');
       }
     },
@@ -268,7 +311,7 @@ export function useUpdateSiteSettings() {
       } catch (error: any) {
         // Transform backend errors into user-friendly messages
         if (error.message && error.message.includes('Unauthorized')) {
-          throw new Error('Unauthorized: Admin access required');
+          throw new Error('You do not have permission to update settings. Please log in and verify your passkey.');
         }
         throw error;
       }

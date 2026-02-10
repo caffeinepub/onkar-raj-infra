@@ -1,52 +1,43 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T08:17:00.472Z",
-  "summary": "The diff implements an admin session unlock flow with return-path redirect and React Query invalidation/refetch on unlock, but it does not clearly implement the required backend admin-authorization initialization via the existing caffeineAdminToken mechanism, and it adds unrelated placeholder admin actions (confirm/reject enquiry) that go beyond the stated non-goals.",
+  "generatedAt": "2026-02-10T09:17:09.776Z",
+  "summary": "Frontend changes add a passkey verification mutation that unlocks an admin session and attempts to call a backend `authenticateAdmin(passkey)` method; admin data queries are now gated on an `isUnlocked` admin session state. However, the diff summary does not show the backend implementation of `authenticateAdmin`, nor does it show where the hard-coded passkey value is defined, and it introduces enquiry confirm/reject placeholder mutations not requested.",
   "missing_requirements": [
     {
-      "id": "REQ-5",
-      "requirement": "Fix backend authorization initialization for admin-only data reads so that, after passkey unlock, admin data queries (enquiries/messages) can successfully call the backend without being blocked by missing access-control initialization.",
-      "reason": "The changes show frontend passkey verification and React Query invalidations, but there is no clear implementation/evidence of initializing backend access control using the existing caffeineAdminToken secret-token flow for anonymous (non-Internet-Identity) sessions. The only related change is invalidating the ['actor'] query; the actual token-based authorization initialization is not shown.",
+      "id": "REQ-2",
+      "requirement": "Ensure the passkey verification flow authenticates the caller with the backend’s admin authorization mechanism so admin-only backend methods no longer trap with Unauthorized.",
+      "reason": "The frontend calls `actor.authenticateAdmin(trimmedPasskey)`, but the provided `backend/main.mo` diff is truncated and does not include evidence that an `authenticateAdmin` method exists/was implemented or that it integrates with the backend admin authorization mechanism.",
       "evidence": [
-        "frontend/src/hooks/useAuthz.ts (invalidateQueries({ queryKey: ['actor'] }) but no caffeineAdminToken initialization shown)",
-        "frontend/src/hooks/useQueries.ts (enquiries query requires isUnlocked; no explicit token/authorization init shown)"
+        "frontend/src/hooks/useAuthz.ts",
+        "backend/main.mo (truncated)"
       ]
     },
     {
-      "id": "REQ-5",
-      "requirement": "If no valid admin token is present, the UI shows a clear English error explaining that admin authorization is missing and that the admin token/passkey needs to be verified (no silent failure).",
-      "reason": "The enquiries hook throws generic errors ('Admin session not unlocked', 'Failed to load enquiries. Please try again.') and an 'Unauthorized' message referencing passkey, but there is no explicit error path/message tied to a missing/invalid admin token (caffeineAdminToken) as required.",
+      "id": "REQ-3",
+      "requirement": "Keep the admin passkey hard-coded as \"vEDANSH468\" and do not add any UI/settings to change it.",
+      "reason": "The diff references `verifyPasskey` from `../utils/adminCredentials`, but the diff summary does not include that file or any explicit constant value showing the passkey remains hard-coded to \"vEDANSH468\".",
       "evidence": [
-        "frontend/src/hooks/useQueries.ts (useGetAllEnquiries: errors are 'Admin session not unlocked', 'You do not have permission...verify your passkey.', 'Failed to load enquiries...')"
+        "frontend/src/hooks/useAuthz.ts"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Added placeholder 'confirm' and 'reject' enquiry mutations that simulate success and then throw 'not implemented' errors.",
-      "reason": "The BuildRequest explicitly lists as non-goals implementing new admin features beyond fixing access; these mutations introduce new admin operations/behavior unrelated to passkey login/access.",
+      "description": "Added placeholder \"confirm enquiry\" and \"reject enquiry\" mutations that intentionally throw 'not yet implemented in backend'.",
+      "reason": "These enquiry confirm/reject operations are new functionality not requested in REQ-1/REQ-2/REQ-3 and are unrelated to restoring admin access for enquiries/messages.",
       "evidence": [
-        "frontend/src/hooks/useQueries.ts (useConfirmEnquiry, useRejectEnquiry)"
-      ]
-    },
-    {
-      "description": "Invalidation of an additional admin query key ['feedback'] during passkey verification.",
-      "reason": "REQ-6 only requires refetch/invalidation at minimum for ['enquiries'] and ['messages']; adding ['feedback'] is extra behavior not requested.",
-      "evidence": [
-        "frontend/src/hooks/useAuthz.ts (invalidateQueries for ['feedback'])"
+        "frontend/src/hooks/useQueries.ts"
       ]
     }
   ],
-  "confidence": 0.62,
+  "confidence": 0.68,
   "changed_files": [
+    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/hooks/useAdminSession.ts",
     "frontend/src/hooks/useAuthz.ts",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/admin/AdminLoginPage.tsx",
-    "frontend/src/pages/admin/AdminRouteGuard.tsx",
-    "frontend/src/utils/adminReturnPath.ts",
+    "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
     "project_state.json"
   ]
 }

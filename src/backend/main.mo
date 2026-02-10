@@ -1,14 +1,14 @@
 import Array "mo:core/Array";
 import Iter "mo:core/Iter";
-import Runtime "mo:core/Runtime";
-import Text "mo:core/Text";
 import Map "mo:core/Map";
 import Nat "mo:core/Nat";
 import Order "mo:core/Order";
-import Storage "blob-storage/Storage";
-import MixinAuthorization "authorization/MixinAuthorization";
 import Principal "mo:core/Principal";
+import Runtime "mo:core/Runtime";
+import Text "mo:core/Text";
+import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
+import Storage "blob-storage/Storage";
 import AccessControl "authorization/access-control";
 
 actor {
@@ -64,6 +64,7 @@ actor {
 
   public type UserProfile = {
     name : Text;
+    // other user metadata if needed
   };
 
   public type Product = {
@@ -135,7 +136,7 @@ actor {
   /////////////////////////////////////////////////////////////////////////////
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can access profiles");
+      Runtime.trap("Unauthorized: Only users can save profiles");
     };
     userProfiles.get(caller);
   };

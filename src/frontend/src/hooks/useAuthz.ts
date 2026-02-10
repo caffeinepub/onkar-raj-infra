@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
+import { useInternetIdentity } from './useInternetIdentity';
 import type { UserProfile } from '../backend';
 import { adminSession } from '../utils/adminSession';
 import { verifyPasskey } from '../utils/adminCredentials';
@@ -19,6 +20,8 @@ export function useIsCallerAdmin() {
 
 export function useVerifyAdminPasskey() {
   const queryClient = useQueryClient();
+  const { actor } = useActor();
+  const { identity } = useInternetIdentity();
 
   return useMutation({
     mutationFn: async (passkey: string) => {
@@ -30,7 +33,7 @@ export function useVerifyAdminPasskey() {
           throw new Error('Passkey is required');
         }
 
-        // Verify passkey locally (frontend-only, no backend or Internet Identity)
+        // Verify passkey locally first
         const isValid = verifyPasskey(trimmedPasskey);
         
         if (!isValid) {
@@ -38,7 +41,30 @@ export function useVerifyAdminPasskey() {
           throw new Error('Invalid passkey');
         }
 
-        // Passkey is correct, unlock admin session
+        // Ensure user is logged in with Internet Identity
+        if (!identity) {
+          adminSession.clear();
+          throw new Error('You must be logged in to access admin features');
+        }
+
+        // Ensure actor is available
+        if (!actor) {
+          adminSession.clear();
+          throw new Error('Unable to connect to the service. Please refresh the page and try again.');
+        }
+
+        // Call backend to authenticate admin with the passkey
+        try {
+          await actor.authenticateAdmin(trimmedPasskey);
+        } catch (error: any) {
+          adminSession.clear();
+          if (error.message && error.message.includes('Invalid passkey')) {
+            throw new Error('Invalid passkey');
+          }
+          throw new Error('Failed to authenticate. Please try again.');
+        }
+
+        // Backend authentication successful, unlock admin session
         adminSession.setUnlocked();
         
         // Invalidate actor to reinitialize with admin token

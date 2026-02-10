@@ -64,13 +64,13 @@ export function useActorReady(shouldWait: boolean): ActorReadyResult {
 
 /**
  * Utility function to wait for actor readiness with a promise-based API.
- * Returns true if actor becomes ready, throws error if timeout.
+ * Returns the actor if it becomes ready, throws error if timeout.
  */
 export async function waitForActorReady(
   getActor: () => any,
   getIsFetching: () => boolean,
   timeoutMs: number = 10000
-): Promise<boolean> {
+): Promise<any> {
   const startTime = Date.now();
   const pollInterval = 200;
 
@@ -80,13 +80,13 @@ export async function waitForActorReady(
       const isFetching = getIsFetching();
 
       if (actor && !isFetching) {
-        resolve(true);
+        resolve(actor);
         return;
       }
 
       const elapsed = Date.now() - startTime;
       if (elapsed >= timeoutMs) {
-        reject(new Error('Connection timeout. Please try again.'));
+        reject(new Error('Unable to connect to the service. Please check your connection and try again.'));
         return;
       }
 

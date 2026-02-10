@@ -1,74 +1,63 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T08:17:00.474Z",
+  "generatedAt": "2026-02-10T09:17:09.778Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
     "total": 3,
-    "implemented": 3,
+    "implemented": 2,
     "items": [
       {
-        "id": "REQ-4",
-        "summary": "Ensure that a successful admin passkey login actually unlocks access for all guarded admin pages (including Enquiries and Messages) by persisting the unlocked session state and redirecting to the originally requested admin route.",
+        "id": "REQ-1",
+        "summary": "When a user enters the correct admin passkey on the existing admin login page, unlock full admin access across the app (including enquiries and messages) for that user session.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/admin/AdminRouteGuard.tsx",
+          "frontend/src/hooks/useAuthz.ts",
           "frontend/src/pages/admin/AdminLoginPage.tsx",
-          "frontend/src/utils/adminSession.ts",
-          "frontend/src/utils/adminReturnPath.ts"
+          "frontend/src/pages/admin/AdminRouteGuard.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/admin/AdminRouteGuard.tsx",
-          "frontend/src/pages/admin/AdminLoginPage.tsx",
-          "frontend/src/utils/adminReturnPath.ts"
+          "frontend/src/hooks/useAuthz.ts"
         ]
       },
       {
-        "id": "REQ-5",
-        "summary": "Fix backend authorization initialization for admin-only data reads so that, after passkey unlock, admin data queries (enquiries/messages) can successfully call the backend without being blocked by missing access-control initialization.",
+        "id": "REQ-2",
+        "summary": "Fix the regression causing \"Unauthorized\"/\"no access\" errors for admin-only backend methods by ensuring the passkey verification flow also authenticates the caller with the backend’s admin authorization mechanism.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useAdminActor.ts",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/pages/admin/AdminMessagesPage.tsx",
-          "frontend/src/pages/admin/AdminEnquiriesPanel.tsx"
+          "frontend/src/hooks/useAuthz.ts",
+          "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
+          "frontend/src/hooks/useAuthz.ts",
+          "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
           "frontend/src/hooks/useQueries.ts"
         ]
       },
       {
-        "id": "REQ-6",
-        "summary": "Make React Query admin data screens reliably refresh after admin unlock so that enquiries and messages appear immediately after login without requiring a manual page refresh.",
-        "status": "implemented",
+        "id": "REQ-3",
+        "summary": "Keep the admin passkey hard-coded as \"vEDANSH468\" and do not add any UI or settings to change it.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/src/hooks/useAdminSession.ts",
-          "frontend/src/hooks/useAuthz.ts",
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/utils/adminCredentials.ts"
         ],
-        "matchedFiles": [
-          "frontend/src/hooks/useAdminSession.ts",
-          "frontend/src/hooks/useAuthz.ts",
-          "frontend/src/hooks/useQueries.ts"
-        ]
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
-    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/hooks/useAdminSession.ts",
     "frontend/src/hooks/useAuthz.ts",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/admin/AdminLoginPage.tsx",
-    "frontend/src/pages/admin/AdminRouteGuard.tsx",
-    "frontend/src/utils/adminReturnPath.ts",
+    "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

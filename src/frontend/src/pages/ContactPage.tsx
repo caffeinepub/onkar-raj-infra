@@ -1,26 +1,43 @@
 import { useEffect, useState } from 'react';
 import { useGetSiteSettings, useSendMessage } from '../hooks/useQueries';
+import { useActor } from '../hooks/useActor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { Mail, Phone, MapPin, Loader2 } from 'lucide-react';
+import { Mail, Phone, MapPin, Loader2, AlertCircle } from 'lucide-react';
 import type { Message } from '../backend';
 
 export default function ContactPage() {
   const { data: settings } = useGetSiteSettings();
+  const actorState = useActor();
+  const actor = actorState.actor;
+  const isFetching = actorState.isFetching;
   const sendMessage = useSendMessage();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
+  const [connectionChecked, setConnectionChecked] = useState(false);
 
   useEffect(() => {
     document.title = 'Contact Us - Onkar Raj Infra';
   }, []);
+
+  // Check connection status after initial load
+  useEffect(() => {
+    if (!isFetching && !connectionChecked) {
+      setConnectionChecked(true);
+    }
+  }, [isFetching, connectionChecked]);
+
+  const isConnecting = isFetching && !actor;
+  const isConnectionError = connectionChecked && !actor && !isFetching;
+  const isFormDisabled = isConnecting || isConnectionError || sendMessage.isPending;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +91,24 @@ export default function ContactPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {isConnectionError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Unable to connect to the service. Please refresh the page and try again.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {isConnecting && (
+                <Alert className="mb-4">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <AlertDescription>
+                    Connecting to the service...
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Name</Label>
@@ -82,6 +117,7 @@ export default function ContactPage() {
                     placeholder="Your name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    disabled={isFormDisabled}
                     required
                   />
                 </div>
@@ -93,6 +129,7 @@ export default function ContactPage() {
                     placeholder="Your phone number"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
+                    disabled={isFormDisabled}
                     required
                   />
                 </div>
@@ -104,6 +141,7 @@ export default function ContactPage() {
                     placeholder="your.email@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    disabled={isFormDisabled}
                     required
                   />
                 </div>
@@ -111,9 +149,10 @@ export default function ContactPage() {
                   <Label htmlFor="subject">Subject</Label>
                   <Input
                     id="subject"
-                    placeholder="Subject of your message"
+                    placeholder="What is this about?"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
+                    disabled={isFormDisabled}
                     required
                   />
                 </div>
@@ -122,17 +161,23 @@ export default function ContactPage() {
                   <Textarea
                     id="message"
                     placeholder="Your message..."
-                    rows={5}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
+                    disabled={isFormDisabled}
+                    rows={5}
                     required
                   />
                 </div>
-                <Button type="submit" disabled={sendMessage.isPending} className="w-full">
+                <Button type="submit" disabled={isFormDisabled} className="w-full">
                   {sendMessage.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Sending...
+                    </>
+                  ) : isConnecting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Connecting...
                     </>
                   ) : (
                     'Send Message'
@@ -147,6 +192,9 @@ export default function ContactPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Contact Information</CardTitle>
+                <CardDescription>
+                  Reach out to us through any of these channels
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-start gap-3">
@@ -154,16 +202,7 @@ export default function ContactPage() {
                   <div>
                     <p className="font-medium">Location</p>
                     <p className="text-sm text-muted-foreground">
-                      {settings?.contactLocation || 'Location information will be updated soon'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Phone className="mt-1 h-5 w-5 text-primary" />
-                  <div>
-                    <p className="font-medium">Phone</p>
-                    <p className="text-sm text-muted-foreground">
-                      {settings?.contactPhone || 'Phone number will be updated soon'}
+                      {settings?.contactLocation || 'Loading...'}
                     </p>
                   </div>
                 </div>
@@ -171,19 +210,33 @@ export default function ContactPage() {
                   <Mail className="mt-1 h-5 w-5 text-primary" />
                   <div>
                     <p className="font-medium">Email</p>
-                    <p className="text-sm text-muted-foreground">
-                      {settings?.contactEmail || 'Email address will be updated soon'}
-                    </p>
+                    <a
+                      href={`mailto:${settings?.contactEmail}`}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      {settings?.contactEmail || 'Loading...'}
+                    </a>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Phone className="mt-1 h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-medium">Phone</p>
+                    <a
+                      href={`tel:${settings?.contactPhone}`}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      {settings?.contactPhone || 'Loading...'}
+                    </a>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Map */}
             {settings?.googleMapEmbed && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Location</CardTitle>
+                  <CardTitle>Find Us</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div
