@@ -1,77 +1,85 @@
 import { useGetAllMessages } from '../../hooks/useQueries';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Mail, AlertCircle } from 'lucide-react';
 
 export default function AdminMessagesPage() {
   const { data: messages, isLoading, error } = useGetAllMessages();
 
-  const formatDate = (timestamp: bigint) => {
-    return new Date(Number(timestamp)).toLocaleString();
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          {error.message || 'Failed to load messages. Please try again.'}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!messages || messages.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Contact Messages</CardTitle>
+          <CardDescription>No messages received yet</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Messages</CardTitle>
-        <CardDescription>View all contact form messages</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="py-8 text-center">
-            <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : error ? (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {error.message || 'Failed to load messages. Please ensure you are logged in and have admin access.'}
-            </AlertDescription>
-          </Alert>
-        ) : messages && messages.length > 0 ? (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Contact Messages</h1>
+        <p className="text-muted-foreground">View all customer contact form submissions</p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>All Messages</CardTitle>
+          <CardDescription>Messages from the contact form</CardDescription>
+        </CardHeader>
+        <CardContent>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Date</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Message</TableHead>
-                  <TableHead>Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {messages.map((message) => (
                   <TableRow key={message.id}>
-                    <TableCell className="font-medium">{message.name}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {new Date(Number(message.timestamp)).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>{message.name}</TableCell>
                     <TableCell>{message.phone}</TableCell>
                     <TableCell>{message.email}</TableCell>
                     <TableCell>{message.subject}</TableCell>
-                    <TableCell className="max-w-xs">
-                      <div className="line-clamp-2" title={message.message}>
-                        {message.message}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                      {formatDate(message.timestamp)}
-                    </TableCell>
+                    <TableCell className="max-w-xs truncate">{message.message}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Mail className="mb-4 h-12 w-12 text-muted-foreground/50" />
-            <p className="text-lg font-medium text-muted-foreground">No messages yet</p>
-            <p className="text-sm text-muted-foreground">
-              Contact form messages will appear here once submitted
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

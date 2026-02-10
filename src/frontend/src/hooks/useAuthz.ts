@@ -1,9 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import { useInternetIdentity } from './useInternetIdentity';
+import { useAdminActor } from './useAdminActor';
 import type { UserProfile } from '../backend';
 import { adminSession } from '../utils/adminSession';
 import { verifyPasskey } from '../utils/adminCredentials';
+import { waitForActorReady } from './useActorReady';
+import { getEnvironmentLabel } from '../utils/buildInfo';
+import { sanitizeError } from '../utils/sanitizeError';
 
 export function useIsCallerAdmin() {
   // This hook is deprecated for admin route guarding
@@ -20,65 +23,105 @@ export function useIsCallerAdmin() {
 
 export function useVerifyAdminPasskey() {
   const queryClient = useQueryClient();
-  const { actor } = useActor();
-  const { identity } = useInternetIdentity();
+  const { actor: adminActor, isFetching: adminActorFetching } = useAdminActor();
 
   return useMutation({
     mutationFn: async (passkey: string) => {
+      const envLabel = getEnvironmentLabel();
+      
       try {
-        // Validate passkey input
+        // Step 1: Validate passkey input
         const trimmedPasskey = passkey.trim();
         if (!trimmedPasskey) {
-          adminSession.clear();
+          adminSession.safeClear();
           throw new Error('Passkey is required');
         }
 
-        // Verify passkey locally first
+        // Step 2: Verify passkey locally first
         const isValid = verifyPasskey(trimmedPasskey);
         
         if (!isValid) {
-          adminSession.clear();
+          adminSession.safeClear();
+          console.error(
+            `[Admin Auth] ${envLabel} | Step: Local validation | Result: Invalid passkey`
+          );
           throw new Error('Invalid passkey');
         }
 
-        // Ensure user is logged in with Internet Identity
-        if (!identity) {
-          adminSession.clear();
-          throw new Error('You must be logged in to access admin features');
-        }
+        console.log(`[Admin Auth] ${envLabel} | Step: Local validation | Result: Valid`);
 
-        // Ensure actor is available
-        if (!actor) {
-          adminSession.clear();
+        // Step 3: Wait for admin actor to be ready with bounded timeout
+        let readyActor;
+        try {
+          readyActor = await waitForActorReady(
+            () => adminActor,
+            () => adminActorFetching,
+            15000 // 15 second timeout for production
+          );
+          console.log(`[Admin Auth] ${envLabel} | Step: Actor ready | Result: Success`);
+        } catch (error: any) {
+          adminSession.safeClear();
+          const sanitized = sanitizeError(error);
+          console.error(
+            `[Admin Auth] ${envLabel} | Step: Actor readiness | Error: ${sanitized}`
+          );
           throw new Error('Unable to connect to the service. Please refresh the page and try again.');
         }
 
-        // Call backend to authenticate admin with the passkey
+        // Step 4: Call backend to authenticate admin with the passkey
         try {
-          await actor.authenticateAdmin(trimmedPasskey);
+          await readyActor.authenticateWithAdminPasskey(trimmedPasskey);
+          console.log(`[Admin Auth] ${envLabel} | Step: Backend authenticate | Result: Success`);
         } catch (error: any) {
-          adminSession.clear();
+          adminSession.safeClear();
+          const sanitized = sanitizeError(error);
+          console.error(
+            `[Admin Auth] ${envLabel} | Step: Backend authenticate | Error: ${sanitized}`
+          );
+          
+          // Surface safe backend error messages
           if (error.message && error.message.includes('Invalid passkey')) {
             throw new Error('Invalid passkey');
           }
-          throw new Error('Failed to authenticate. Please try again.');
+          throw new Error('Authentication failed. Please try again.');
         }
 
-        // Backend authentication successful, unlock admin session
+        // Step 5: Verify admin status was granted
+        try {
+          const isAdmin = await readyActor.isCallerAdmin();
+          if (!isAdmin) {
+            adminSession.safeClear();
+            console.error(
+              `[Admin Auth] ${envLabel} | Step: Verify admin status | Result: Not granted`
+            );
+            throw new Error('Admin access was not granted. Please try again or contact support.');
+          }
+          console.log(`[Admin Auth] ${envLabel} | Step: Verify admin status | Result: Granted`);
+        } catch (error: any) {
+          adminSession.safeClear();
+          const sanitized = sanitizeError(error);
+          console.error(
+            `[Admin Auth] ${envLabel} | Step: Verify admin status | Error: ${sanitized}`
+          );
+          throw new Error('Unable to verify admin access. Please refresh the page and try again.');
+        }
+
+        // Step 6: Backend authentication successful and verified, unlock admin session
         adminSession.setUnlocked();
+        console.log(`[Admin Auth] ${envLabel} | Step: Session unlock | Result: Success`);
         
-        // Invalidate actor to reinitialize with admin token
-        queryClient.invalidateQueries({ queryKey: ['actor'] });
-        
-        // Invalidate and refetch admin queries so they load immediately
+        // Step 7: Invalidate admin queries so they load immediately with new permissions
+        // Do NOT invalidate actor - it would trigger re-initialization and clear admin status
         queryClient.invalidateQueries({ queryKey: ['enquiries'] });
         queryClient.invalidateQueries({ queryKey: ['messages'] });
         queryClient.invalidateQueries({ queryKey: ['feedback'] });
+        queryClient.invalidateQueries({ queryKey: ['products'] });
+        queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
         
         return true;
       } catch (error: any) {
         // Ensure session is cleared on any error path
-        adminSession.clear();
+        adminSession.safeClear();
         throw error;
       }
     },

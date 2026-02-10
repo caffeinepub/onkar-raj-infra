@@ -1,51 +1,69 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T09:17:09.778Z",
+  "generatedAt": "2026-02-10T17:36:35.926Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
     "total": 3,
-    "implemented": 2,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "When a user enters the correct admin passkey on the existing admin login page, unlock full admin access across the app (including enquiries and messages) for that user session.",
+        "summary": "Update the admin passkey verification flow so it can authenticate successfully on the published (production) site, matching draft behavior, and no longer fails with the generic error \"Authentication failed. Please try again.\" when the passkey is correct.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useAuthz.ts",
-          "frontend/src/pages/admin/AdminLoginPage.tsx",
-          "frontend/src/pages/admin/AdminRouteGuard.tsx"
+          "frontend/src/hooks/useAdminActor.ts",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/admin/AdminEnquiriesPanel.tsx",
+          "frontend/src/pages/admin/AdminMessagesPage.tsx",
+          "frontend/src/pages/admin/AdminFeedbackPage.tsx",
+          "frontend/src/pages/admin/AdminProductsPanel.tsx",
+          "frontend/src/pages/admin/AdminSettingsPanel.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useAuthz.ts"
+          "frontend/src/hooks/useAdminActor.ts",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/admin/AdminEnquiriesPanel.tsx",
+          "frontend/src/pages/admin/AdminMessagesPage.tsx",
+          "frontend/src/pages/admin/AdminFeedbackPage.tsx",
+          "frontend/src/pages/admin/AdminProductsPanel.tsx",
+          "frontend/src/pages/admin/AdminSettingsPanel.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Fix the regression causing \"Unauthorized\"/\"no access\" errors for admin-only backend methods by ensuring the passkey verification flow also authenticates the caller with the backend’s admin authorization mechanism.",
+        "summary": "Refactor the admin passkey verification hook to avoid relying on the shared `useActor()` initialization path when performing `authenticateWithAdminPasskey`, ensuring the admin authentication call is made with a working backend actor even if actor initialization with secret-token bootstrapping fails or behaves differently in production.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/hooks/useAuthz.ts",
-          "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/pages/admin/AdminLoginPage.tsx",
+          "frontend/src/hooks/useAdminActor.ts"
         ],
         "matchedFiles": [
           "frontend/src/hooks/useAuthz.ts",
-          "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/pages/admin/AdminLoginPage.tsx",
+          "frontend/src/hooks/useAdminActor.ts"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Keep the admin passkey hard-coded as \"vEDANSH468\" and do not add any UI or settings to change it.",
-        "status": "missing",
+        "summary": "Improve admin login error reporting so that production failures are diagnosable without exposing sensitive details: log the underlying failure reason to the console with enough context (environment label, step, and a sanitized error string), and ensure the UI displays a clear English message that distinguishes invalid passkey vs connectivity vs backend rejection.",
+        "status": "implemented",
         "plannedFiles": [
-          "frontend/src/utils/adminCredentials.ts"
+          "frontend/src/utils/sanitizeError.ts",
+          "frontend/src/hooks/useAuthz.ts",
+          "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
+          "frontend/src/utils/buildInfo.ts"
         ],
-        "matchedFiles": []
+        "matchedFiles": [
+          "frontend/src/utils/sanitizeError.ts",
+          "frontend/src/hooks/useAuthz.ts",
+          "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
+          "frontend/src/utils/buildInfo.ts"
+        ]
       }
     ]
   },
@@ -55,9 +73,18 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/hooks/useAdminActor.ts",
     "frontend/src/hooks/useAuthz.ts",
     "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/admin/AdminEnquiriesPanel.tsx",
+    "frontend/src/pages/admin/AdminFeedbackPage.tsx",
+    "frontend/src/pages/admin/AdminLoginPage.tsx",
+    "frontend/src/pages/admin/AdminMessagesPage.tsx",
+    "frontend/src/pages/admin/AdminProductsPanel.tsx",
+    "frontend/src/pages/admin/AdminSettingsPanel.tsx",
     "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
+    "frontend/src/utils/buildInfo.ts",
+    "frontend/src/utils/sanitizeError.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

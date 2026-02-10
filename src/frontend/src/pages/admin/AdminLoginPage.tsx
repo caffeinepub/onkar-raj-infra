@@ -21,18 +21,28 @@ export default function AdminLoginPage() {
   }, [navigate, search.returnPath]);
 
   const handlePasskeySubmit = async (passkey: string) => {
+    // Prevent double submission
+    if (isProcessing) return;
+    
     setIsProcessing(true);
 
     try {
-      // Verify passkey (frontend-only, no Internet Identity or backend)
+      // Verify passkey and authenticate with backend
       await verifyMutation.mutateAsync(passkey);
 
-      // Successfully verified, navigate to the originally requested path
+      // Successfully verified and unlocked, navigate to the originally requested path
       const returnPath = search.returnPath || adminReturnPath.get() || '/admin/products';
       adminReturnPath.clear();
-      navigate({ to: returnPath as any });
+      
+      // Small delay to ensure session state is propagated
+      setTimeout(() => {
+        navigate({ to: returnPath as any });
+        setIsProcessing(false);
+      }, 100);
     } catch (error: any) {
+      // Error is already logged in useAuthz, reset processing state
       setIsProcessing(false);
+      // Re-throw to let the UI component display the error
       throw error;
     }
   };

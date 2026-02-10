@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
+import { useAdminActor } from './useAdminActor';
 import type { Product, Enquiry, SiteSettings, Feedback, Message } from '../backend';
 import { useAdminSession } from './useAdminSession';
 import { waitForActorReady } from './useActorReady';
@@ -19,16 +20,16 @@ export function useGetAllProducts() {
 }
 
 export function useAddProduct() {
-  const { actor } = useActor();
+  const { actor: adminActor } = useAdminActor();
   const queryClient = useQueryClient();
   const { isUnlocked } = useAdminSession();
 
   return useMutation({
     mutationFn: async (product: Product) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!adminActor) throw new Error('Admin actor not available');
       if (!isUnlocked) throw new Error('Admin session not unlocked');
       try {
-        return await actor.addProduct(product);
+        return await adminActor.addProduct(product);
       } catch (error: any) {
         // Transform backend errors into user-friendly messages
         if (error.message && error.message.includes('Unauthorized')) {
@@ -43,18 +44,32 @@ export function useAddProduct() {
   });
 }
 
+// Pricing
+export function useGetPriceForDiameter(diameter: string) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<number | null>({
+    queryKey: ['price', diameter],
+    queryFn: async () => {
+      if (!actor || !diameter) return null;
+      return actor.getPriceForDiameter(diameter);
+    },
+    enabled: !!actor && !isFetching && !!diameter,
+  });
+}
+
 // Enquiries
 export function useGetAllEnquiries() {
-  const { actor, isFetching } = useActor();
+  const { actor: adminActor, isFetching: adminActorFetching } = useAdminActor();
   const { isUnlocked } = useAdminSession();
 
   return useQuery<Enquiry[], Error>({
     queryKey: ['enquiries', isUnlocked],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
+      if (!adminActor) throw new Error('Admin actor not available');
       if (!isUnlocked) throw new Error('Admin session not unlocked');
       try {
-        const result = await actor.getAllEnquiries();
+        const result = await adminActor.getAllEnquiries();
         // Sort by timestamp descending (newest first)
         return result.sort((a, b) => Number(b.timestamp - a.timestamp));
       } catch (error: any) {
@@ -65,7 +80,7 @@ export function useGetAllEnquiries() {
         throw new Error('Failed to load enquiries. Please try again.');
       }
     },
-    enabled: !!actor && !isFetching && isUnlocked,
+    enabled: !!adminActor && !adminActorFetching && isUnlocked,
     retry: false,
   });
 }
@@ -157,16 +172,16 @@ export function useSubmitEnquiry() {
 
 // Feedback
 export function useGetAllFeedback() {
-  const { actor, isFetching } = useActor();
+  const { actor: adminActor, isFetching: adminActorFetching } = useAdminActor();
   const { isUnlocked } = useAdminSession();
 
   return useQuery<Feedback[], Error>({
     queryKey: ['feedback', isUnlocked],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
+      if (!adminActor) throw new Error('Admin actor not available');
       if (!isUnlocked) throw new Error('Admin session not unlocked');
       try {
-        const result = await actor.getAllFeedback();
+        const result = await adminActor.getAllFeedback();
         // Sort by timestamp descending (newest first)
         return result.sort((a, b) => Number(b.timestamp - a.timestamp));
       } catch (error: any) {
@@ -177,7 +192,7 @@ export function useGetAllFeedback() {
         throw new Error('Failed to load feedback. Please try again.');
       }
     },
-    enabled: !!actor && !isFetching && isUnlocked,
+    enabled: !!adminActor && !adminActorFetching && isUnlocked,
     retry: false,
   });
 }
@@ -221,16 +236,16 @@ export function useSubmitFeedback() {
 
 // Messages
 export function useGetAllMessages() {
-  const { actor, isFetching } = useActor();
+  const { actor: adminActor, isFetching: adminActorFetching } = useAdminActor();
   const { isUnlocked } = useAdminSession();
 
   return useQuery<Message[], Error>({
     queryKey: ['messages', isUnlocked],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
+      if (!adminActor) throw new Error('Admin actor not available');
       if (!isUnlocked) throw new Error('Admin session not unlocked');
       try {
-        const result = await actor.getAllMessages();
+        const result = await adminActor.getAllMessages();
         // Sort by timestamp descending (newest first)
         return result.sort((a, b) => Number(b.timestamp - a.timestamp));
       } catch (error: any) {
@@ -241,7 +256,7 @@ export function useGetAllMessages() {
         throw new Error('Failed to load messages. Please try again.');
       }
     },
-    enabled: !!actor && !isFetching && isUnlocked,
+    enabled: !!adminActor && !adminActorFetching && isUnlocked,
     retry: false,
   });
 }
@@ -298,16 +313,16 @@ export function useGetSiteSettings() {
 }
 
 export function useUpdateSiteSettings() {
-  const { actor } = useActor();
+  const { actor: adminActor } = useAdminActor();
   const queryClient = useQueryClient();
   const { isUnlocked } = useAdminSession();
 
   return useMutation({
     mutationFn: async (settings: SiteSettings) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!adminActor) throw new Error('Admin actor not available');
       if (!isUnlocked) throw new Error('Admin session not unlocked');
       try {
-        return await actor.updateSiteSettings(settings);
+        return await adminActor.updateSiteSettings(settings);
       } catch (error: any) {
         // Transform backend errors into user-friendly messages
         if (error.message && error.message.includes('Unauthorized')) {
@@ -319,19 +334,5 @@ export function useUpdateSiteSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['siteSettings'] });
     },
-  });
-}
-
-// Pricing
-export function useGetPriceForDiameter(diameter: string) {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<number | null>({
-    queryKey: ['price', diameter],
-    queryFn: async () => {
-      if (!actor || !diameter) return null;
-      return actor.getPriceForDiameter(diameter);
-    },
-    enabled: !!actor && !isFetching && !!diameter,
   });
 }

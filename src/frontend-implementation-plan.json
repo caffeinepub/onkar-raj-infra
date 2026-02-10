@@ -1,72 +1,108 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Restore admin access for enquiries/messages via shared passkey and backend admin authentication",
+  "title": "Production-safe admin passkey authentication (match draft behavior)",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Unlock admin access for the browser session after correct passkey entry, enabling navigation to all admin pages including enquiries and messages.",
+      "summary": "Make admin passkey unlock succeed on the published site (no secret URL token required) and ensure admin area navigation + admin-only data loads without auth errors.",
       "acceptanceCriteria": [
-        "Entering passkey \"vEDANSH468\" on the admin login page results in the user being treated as admin for the remainder of the browser session (until logout/session clear).",
-        "After successful passkey entry, navigating to /admin/enquiries and /admin/messages loads the data instead of showing an access/permission error.",
-        "Admin access applies to other admin-only operations already present (e.g., add product, update settings), not only enquiries/messages."
+        "On the published site, entering the correct admin passkey unlocks admin access and navigates into the admin area (e.g., /admin/products).",
+        "After successful unlock on production, calling the backend admin-only queries (e.g., enquiries/messages/products/settings) succeeds without authorization errors.",
+        "The fix does not require any URL secret token (e.g., caffeineAdminToken) to be present to make admin passkey login work."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useAuthz.ts",
-          "operation": "modify",
-          "description": "Update the passkey verification mutation to unlock the frontend admin session only after successful backend-side admin authentication, so all admin-only reads/writes (enquiries/messages/products/settings) work for the remainder of the session. Use the selected \"authorization\" component’s backend-backed admin mechanism via the existing backendInterface.authenticateAdmin(passkey) call (verify the component's usage instructions before implementing)."
+          "path": "frontend/src/hooks/useAdminActor.ts",
+          "operation": "create",
+          "description": "Create a dedicated admin-only actor hook that creates a backend actor without the secret-token bootstrapping path, using the current Internet Identity when available, and exposing readiness/timeout states for admin calls. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/pages/admin/AdminLoginPage.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Ensure the existing admin login flow redirects only after the updated verification/authentication completes successfully, preserving return-path behavior for /admin/enquiries and /admin/messages."
+          "description": "Refactor admin-only query/mutation hooks (e.g., getAllEnquiries/getAllMessages/getAllFeedback/addProduct/updateSiteSettings) to use the new admin actor hook when admin session is unlocked, while keeping public/non-admin hooks (Home/Products/Contact/Order flows) using the existing useActor() behavior unchanged. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/pages/admin/AdminRouteGuard.tsx",
+          "path": "frontend/src/pages/admin/AdminEnquiriesPanel.tsx",
           "operation": "modify",
-          "description": "Confirm the guard continues to rely on the session unlock state and cleanly redirects locked sessions to /admin/login with the stored return path, ensuring admin pages are not accessible until unlock."
+          "description": "Ensure the enquiries admin UI continues to fetch via the updated admin-only query hook and that post-unlock loading works on production without relying on any URL secret token. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/admin/AdminMessagesPage.tsx",
+          "operation": "modify",
+          "description": "Ensure the messages admin UI continues to fetch via the updated admin-only query hook and that post-unlock loading works on production without relying on any URL secret token. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/admin/AdminFeedbackPage.tsx",
+          "operation": "modify",
+          "description": "Ensure the feedback admin UI continues to fetch via the updated admin-only query hook and that post-unlock loading works on production without relying on any URL secret token. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/admin/AdminProductsPanel.tsx",
+          "operation": "modify",
+          "description": "Ensure add-product uses the updated admin-only mutation hook backed by the tokenless admin actor path so product management works after passkey unlock on production. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/admin/AdminSettingsPanel.tsx",
+          "operation": "modify",
+          "description": "Ensure settings reads/writes use the updated admin-only hooks backed by the tokenless admin actor path so settings management works after passkey unlock on production. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Fix Unauthorized errors by calling backend admin authentication after passkey verification, and enforce correct error handling for empty/invalid passkeys.",
+      "summary": "Refactor admin passkey verification to authenticate using an actor creation path independent of useActor() secret-token initialization, while leaving non-admin actor usage unchanged.",
       "acceptanceCriteria": [
-        "After successful passkey verification, the frontend calls the backend admin authentication method so that backend calls like getAllEnquiries() and getAllMessages() no longer trap with Unauthorized for that caller.",
-        "If the passkey is incorrect, the admin session remains locked and backend admin authentication is not granted.",
-        "If the passkey is empty/whitespace, the admin session remains locked and a user-facing error is shown (in English)."
+        "Admin passkey verification (`authenticateWithAdminPasskey` followed by `isCallerAdmin`) uses an actor creation path that does not depend on any optional secret-token initialization.",
+        "The admin login page shows success + redirects when the passkey is correct on production.",
+        "The existing non-admin pages (Home/Products/Contact/Order) continue to function and use their existing actor/query behavior unchanged."
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useAuthz.ts",
           "operation": "modify",
-          "description": "Implement the regression fix: after locally validating the passkey, require an authenticated Internet Identity session and call actor.authenticateAdmin(trimmedPasskey). Only set adminSession unlocked after this call succeeds; on any failure, clear adminSession and surface English errors. This integrates with the selected \"authorization\" component’s admin authorization flow (verify the component's usage instructions before implementing)."
+          "description": "Update useVerifyAdminPasskey to stop depending on useActor() / waitForActorReady(() => actor) and instead create and use a dedicated admin-auth actor path (authenticateWithAdminPasskey then isCallerAdmin) that does not require any secret-token bootstrapping. Keep the existing non-admin hooks in this file unchanged. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
+          "path": "frontend/src/pages/admin/AdminLoginPage.tsx",
           "operation": "modify",
-          "description": "Adjust the prompt UX to support the new backend-authenticated flow: display a clear English error when passkey is empty/whitespace, and (if needed) show an English message that the user must be logged in with Internet Identity before admin access can be granted."
+          "description": "Ensure the admin login success flow reliably redirects to the stored return path or /admin/products after unlock on production, and that failure states do not cause infinite retries or stale processing state. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/src/hooks/useAdminActor.ts",
           "operation": "modify",
-          "description": "Align admin query error messages with the backend-authenticated admin flow: keep English user-facing messages, and ensure Unauthorized-like failures instruct the user to log in and verify the passkey without exposing internal details."
+          "description": "Wire the new admin actor creation utility into both admin passkey verification and admin data hooks (admin-only queries/mutations), ensuring it works even when the shared useActor() initialization path fails due to secret-token differences in production. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Keep the shared admin passkey hard-coded as vEDANSH468 with no UI/settings to change it.",
+      "summary": "Improve admin login error reporting with safe, diagnosable console logs and clear UI messages for invalid passkey vs connectivity vs backend rejection.",
       "acceptanceCriteria": [
-        "The admin passkey constant remains \"vEDANSH468\".",
-        "There is no admin UI to edit/rotate the passkey."
+        "If the passkey is wrong, the UI shows \"Invalid passkey\" (or equivalent clear English) and does not show a generic authentication error.",
+        "If the backend cannot be reached or the call times out, the UI shows a connectivity-focused message (e.g., instructing refresh/try again) distinct from invalid passkey.",
+        "Console logs include the environment label and which step failed (local validation, actor creation/readiness, backend authenticate call, admin verification)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/utils/adminCredentials.ts",
+          "path": "frontend/src/utils/sanitizeError.ts",
+          "operation": "create",
+          "description": "Add a small utility to produce a sanitized, non-sensitive error string for console logging (e.g., strip passkey/token-like substrings, normalize unknown errors). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useAuthz.ts",
           "operation": "modify",
-          "description": "Ensure the hard-coded ADMIN_PASSKEY remains exactly \"vEDANSH468\" and is only used for local verification; do not add any functionality or exports that would enable editing/rotating the passkey via UI or settings."
+          "description": "Enhance error classification and messaging in the admin passkey flow: (1) invalid passkey -> 'Invalid passkey'; (2) actor creation/readiness/timeout -> connectivity message; (3) backend rejection/unauthorized -> clear 'Admin authentication was rejected' style message; and add console logs with environment label + step + sanitized error via sanitizeError(). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
+          "operation": "modify",
+          "description": "Ensure UI copy is clear English and reflects the new categorized errors (invalid passkey vs connectivity vs backend rejection), without exposing sensitive details, and without regressing form validation UX. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/utils/buildInfo.ts",
+          "operation": "modify",
+          "description": "Standardize a concise environment label helper used by admin-auth console logs (e.g., ensure MODE mapping is consistent between draft/production builds) so production failures remain diagnosable. Verify the component's usage instructions before implementing."
         }
       ]
     }

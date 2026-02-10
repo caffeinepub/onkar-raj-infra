@@ -1,88 +1,81 @@
 {
   "kind": "build_request",
-  "title": "Restore admin access for enquiries and messages using shared passkey (vEDANSH468)",
+  "title": "Fix production admin login failing while draft works",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "When a user enters the correct admin passkey on the existing admin login page, unlock full admin access across the app (including enquiries and messages) for that user session.",
+      "text": "Update the admin passkey verification flow so it can authenticate successfully on the published (production) site, matching draft behavior, and no longer fails with the generic error \"Authentication failed. Please try again.\" when the passkey is correct.",
       "target": "both",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "msg-1",
+          "msg-2",
+          "msg-3"
         ],
         "quotes": [
-          "all users who type correct passkey to get admin access",
-          "in admin page, it is already there",
-          "full admin rights",
-          "vEDANSH468"
+          "still i am unable to access admin page in published site although it is accessible in draft",
+          "Authentication failed. Please try again.",
+          "admin page"
         ]
       },
       "acceptanceCriteria": [
-        "Entering passkey \"vEDANSH468\" on the admin login page results in the user being treated as admin for the remainder of the browser session (until logout/session clear).",
-        "After successful passkey entry, navigating to /admin/enquiries and /admin/messages loads the data instead of showing an access/permission error.",
-        "Admin access applies to other admin-only operations already present (e.g., add product, update settings), not only enquiries/messages."
+        "On the published site, entering the correct admin passkey unlocks admin access and navigates into the admin area (e.g., /admin/products).",
+        "After successful unlock on production, calling the backend admin-only queries (e.g., enquiries/messages/products/settings) succeeds without authorization errors.",
+        "The fix does not require any URL secret token (e.g., caffeineAdminToken) to be present to make admin passkey login work."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Fix the regression causing \"Unauthorized\"/\"no access\" errors for admin-only backend methods by ensuring the passkey verification flow also authenticates the caller with the backend’s admin authorization mechanism.",
-      "target": "both",
+      "text": "Refactor the admin passkey verification hook to avoid relying on the shared `useActor()` initialization path when performing `authenticateWithAdminPasskey`, ensuring the admin authentication call is made with a working backend actor even if actor initialization with secret-token bootstrapping fails or behaves differently in production.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "msg-1",
+          "msg-2"
         ],
         "quotes": [
-          "in version 25 now its showing u dont have access to see enquiries and messages"
+          "still i am unable to access admin page in published site although it is accessible in draft",
+          "Authentication failed. Please try again."
         ]
       },
       "acceptanceCriteria": [
-        "After successful passkey verification, the frontend calls the backend admin authentication method so that backend calls like getAllEnquiries() and getAllMessages() no longer trap with Unauthorized for that caller.",
-        "If the passkey is incorrect, the admin session remains locked and backend admin authentication is not granted.",
-        "If the passkey is empty/whitespace, the admin session remains locked and a user-facing error is shown (in English)."
+        "Admin passkey verification (`authenticateWithAdminPasskey` followed by `isCallerAdmin`) uses an actor creation path that does not depend on any optional secret-token initialization.",
+        "The admin login page shows success + redirects when the passkey is correct on production.",
+        "The existing non-admin pages (Home/Products/Contact/Order) continue to function and use their existing actor/query behavior unchanged."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Keep the admin passkey hard-coded as \"vEDANSH468\" and do not add any UI or settings to change it.",
+      "text": "Improve admin login error reporting so that production failures are diagnosable without exposing sensitive details: log the underlying failure reason to the console with enough context (environment label, step, and a sanitized error string), and ensure the UI displays a clear English message that distinguishes invalid passkey vs connectivity vs backend rejection.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "msg-2"
         ],
         "quotes": [
-          "vEDANSH468",
-          "no change"
+          "Authentication failed. Please try again."
         ]
       },
       "acceptanceCriteria": [
-        "The admin passkey constant remains \"vEDANSH468\".",
-        "There is no admin UI to edit/rotate the passkey."
+        "If the passkey is wrong, the UI shows \"Invalid passkey\" (or equivalent clear English) and does not show a generic authentication error.",
+        "If the backend cannot be reached or the call times out, the UI shows a connectivity-focused message (e.g., instructing refresh/try again) distinct from invalid passkey.",
+        "Console logs include the environment label and which step failed (local validation, actor creation/readiness, backend authenticate call, admin verification)."
       ]
     }
   ],
   "constraints": [
-    "Frontend immutable paths must not be edited: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui.",
-    "Backend must remain a single Motoko actor with logic in backend/main.mo.",
-    "Use English for any user-facing text."
+    "Do not edit files in frontend immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui.",
+    "Backend must remain a single Motoko actor with all logic in backend/main.mo; only introduce migration.mo if state schema changes are required.",
+    "Use English for all user-facing text."
   ],
   "nonGoals": [
-    "Adding role management UI (multiple roles/users) beyond the shared passkey behavior.",
-    "Implementing third-party authentication providers (only Internet Identity is supported).",
-    "Adding new admin features unrelated to restoring access (e.g., new dashboards, exports, analytics)."
+    "Adding third-party authentication providers (only Internet Identity is supported).",
+    "Introducing databases or external backend services.",
+    "Changing the admin passkey value unless explicitly requested by the user."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

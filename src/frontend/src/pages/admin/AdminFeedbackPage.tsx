@@ -1,74 +1,85 @@
 import { useGetAllFeedback } from '../../hooks/useQueries';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, MessageSquare, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function AdminFeedbackPage() {
   const { data: feedback, isLoading, error } = useGetAllFeedback();
 
-  const formatDate = (timestamp: bigint) => {
-    return new Date(Number(timestamp)).toLocaleString();
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          {error.message || 'Failed to load feedback. Please try again.'}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!feedback || feedback.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Customer Feedback</CardTitle>
+          <CardDescription>No feedback received yet</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Feedback</CardTitle>
-        <CardDescription>View all customer feedback submissions</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="py-8 text-center">
-            <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : error ? (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>
-              {error instanceof Error ? error.message : 'Failed to load feedback'}
-            </AlertDescription>
-          </Alert>
-        ) : feedback && feedback.length > 0 ? (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Customer Feedback</h1>
+        <p className="text-muted-foreground">View all customer feedback submissions</p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>All Feedback</CardTitle>
+          <CardDescription>Customer feedback and suggestions</CardDescription>
+        </CardHeader>
+        <CardContent>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Date</TableHead>
                   <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
+                  <TableHead>Email</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Message</TableHead>
-                  <TableHead>Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {feedback.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{item.email}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {new Date(Number(item.timestamp)).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>{item.name}</TableCell>
                     <TableCell>{item.phone}</TableCell>
+                    <TableCell>{item.email}</TableCell>
                     <TableCell>{item.subject}</TableCell>
                     <TableCell className="max-w-xs truncate">{item.message}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDate(item.timestamp)}
-                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <MessageSquare className="mb-4 h-12 w-12 text-muted-foreground/50" />
-            <p className="text-lg font-medium text-muted-foreground">No feedback yet</p>
-            <p className="text-sm text-muted-foreground">
-              Customer feedback will appear here once submitted
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

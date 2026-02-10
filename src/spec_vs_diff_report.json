@@ -1,43 +1,58 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T09:17:09.776Z",
-  "summary": "Frontend changes add a passkey verification mutation that unlocks an admin session and attempts to call a backend `authenticateAdmin(passkey)` method; admin data queries are now gated on an `isUnlocked` admin session state. However, the diff summary does not show the backend implementation of `authenticateAdmin`, nor does it show where the hard-coded passkey value is defined, and it introduces enquiry confirm/reject placeholder mutations not requested.",
+  "generatedAt": "2026-02-10T17:36:35.924Z",
+  "summary": "Diff implements a dedicated admin actor path (bypassing secret-token bootstrapping) and updates the admin passkey verification flow with step-based console logging and some UI error categorization. However, backend-rejection errors can still surface as the same generic \"Authentication failed. Please try again.\" message, which conflicts with the requirement to clearly distinguish backend rejection vs other failure classes.",
   "missing_requirements": [
     {
-      "id": "REQ-2",
-      "requirement": "Ensure the passkey verification flow authenticates the caller with the backend’s admin authorization mechanism so admin-only backend methods no longer trap with Unauthorized.",
-      "reason": "The frontend calls `actor.authenticateAdmin(trimmedPasskey)`, but the provided `backend/main.mo` diff is truncated and does not include evidence that an `authenticateAdmin` method exists/was implemented or that it integrates with the backend admin authorization mechanism.",
-      "evidence": [
-        "frontend/src/hooks/useAuthz.ts",
-        "backend/main.mo (truncated)"
-      ]
-    },
-    {
       "id": "REQ-3",
-      "requirement": "Keep the admin passkey hard-coded as \"vEDANSH468\" and do not add any UI/settings to change it.",
-      "reason": "The diff references `verifyPasskey` from `../utils/adminCredentials`, but the diff summary does not include that file or any explicit constant value showing the passkey remains hard-coded to \"vEDANSH468\".",
+      "requirement": "Ensure UI displays a clear English message that distinguishes invalid passkey vs connectivity vs backend rejection (not a generic authentication error), while console logs include environment label + step + sanitized error.",
+      "reason": "The verify hook still throws the generic message \"Authentication failed. Please try again.\" on backend authenticate failures that are not explicitly detected as invalid passkey. This does not clearly distinguish backend rejection from other failures, and preserves the generic error in some cases.",
       "evidence": [
-        "frontend/src/hooks/useAuthz.ts"
+        "frontend/src/hooks/useAuthz.ts (backend authenticate catch: throws \"Authentication failed. Please try again.\")",
+        "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx (fallback shows \"An error occurred. Please try again.\" / passes through unclassified errors)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Added placeholder \"confirm enquiry\" and \"reject enquiry\" mutations that intentionally throw 'not yet implemented in backend'.",
-      "reason": "These enquiry confirm/reject operations are new functionality not requested in REQ-1/REQ-2/REQ-3 and are unrelated to restoring admin access for enquiries/messages.",
+      "description": "Introduced new build info/versioning utility with styled console output (including an emoji) unrelated to admin login fix requirements.",
+      "reason": "BuildRequest focuses on fixing admin passkey authentication flow and diagnostics for that flow; it does not request build version logging utilities.",
       "evidence": [
-        "frontend/src/hooks/useQueries.ts"
+        "frontend/src/utils/buildInfo.ts"
+      ]
+    },
+    {
+      "description": "Added placeholder mutations for confirming/rejecting enquiries that intentionally throw \"not yet implemented\" errors.",
+      "reason": "Not requested; BuildRequest is specifically about admin login failing in production and related auth flow changes.",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts (useConfirmEnquiry/useRejectEnquiry placeholders)"
+      ]
+    },
+    {
+      "description": "Deprecated backend-based admin guarding by changing useIsCallerAdmin to rely solely on session unlock state.",
+      "reason": "BuildRequest requires authenticateWithAdminPasskey followed by isCallerAdmin for verification in the admin login flow; it does not request deprecating backend admin checks for route guarding globally.",
+      "evidence": [
+        "frontend/src/hooks/useAuthz.ts (useIsCallerAdmin returns adminSession.isUnlocked and notes deprecation)"
       ]
     }
   ],
-  "confidence": 0.68,
+  "confidence": 0.72,
   "changed_files": [
     "backend/main.mo",
     "frontend-file-summaries.txt",
+    "frontend/src/hooks/useAdminActor.ts",
     "frontend/src/hooks/useAuthz.ts",
     "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/admin/AdminEnquiriesPanel.tsx",
+    "frontend/src/pages/admin/AdminFeedbackPage.tsx",
+    "frontend/src/pages/admin/AdminLoginPage.tsx",
+    "frontend/src/pages/admin/AdminMessagesPage.tsx",
+    "frontend/src/pages/admin/AdminProductsPanel.tsx",
+    "frontend/src/pages/admin/AdminSettingsPanel.tsx",
     "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
+    "frontend/src/utils/buildInfo.ts",
+    "frontend/src/utils/sanitizeError.ts",
     "project_state.json"
   ]
 }

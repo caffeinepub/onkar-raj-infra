@@ -175,10 +175,7 @@ export interface backendInterface {
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
     addProduct(product: Product): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    /**
-     * / Grant admin access if correct passkey (from authenticated II user)
-     */
-    authenticateAdmin(passkey: string): Promise<void>;
+    authenticateWithAdminPasskey(passkey: string): Promise<void>;
     getAllEnquiries(): Promise<Array<Enquiry>>;
     getAllFeedback(): Promise<Array<Feedback>>;
     getAllMessages(): Promise<Array<Message>>;
@@ -325,17 +322,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async authenticateAdmin(arg0: string): Promise<void> {
+    async authenticateWithAdminPasskey(arg0: string): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.authenticateAdmin(arg0);
+                const result = await this.actor.authenticateWithAdminPasskey(arg0);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.authenticateAdmin(arg0);
+            const result = await this.actor.authenticateWithAdminPasskey(arg0);
             return result;
         }
     }

@@ -1,226 +1,182 @@
 import { useState, useEffect } from 'react';
 import { useGetSiteSettings, useUpdateSiteSettings } from '../../hooks/useQueries';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { toast } from 'sonner';
-import { Loader2, Save } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, Save, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import type { SiteSettings } from '../../backend';
 
 export default function AdminSettingsPanel() {
   const { data: settings, isLoading } = useGetSiteSettings();
-  const updateSettings = useUpdateSiteSettings();
+  const updateSettingsMutation = useUpdateSiteSettings();
 
-  const [certifications, setCertifications] = useState('');
-  const [contactLocation, setContactLocation] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [googleMapEmbed, setGoogleMapEmbed] = useState('');
-  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
-  const [whatsappPhone, setWhatsappPhone] = useState('');
-  const [whatsappMessage, setWhatsappMessage] = useState('');
-  const [pricingTableText, setPricingTableText] = useState('');
+  const [formData, setFormData] = useState<SiteSettings>({
+    companyName: '',
+    contactLocation: '',
+    contactEmail: '',
+    contactPhone: '',
+    googleMapEmbed: '',
+    whatsappConfig: undefined,
+    pricingTable: [],
+    certifications: '',
+  });
 
   useEffect(() => {
     if (settings) {
-      setCertifications(settings.certifications || '');
-      setContactLocation(settings.contactLocation || '');
-      setContactEmail(settings.contactEmail || '');
-      setContactPhone(settings.contactPhone || '');
-      setGoogleMapEmbed(settings.googleMapEmbed || '');
-      setWhatsappEnabled(!!settings.whatsappConfig);
-      setWhatsappPhone(settings.whatsappConfig?.phoneNumber || '');
-      setWhatsappMessage(settings.whatsappConfig?.prefilledMessage || '');
-      
-      const pricingText = settings.pricingTable
-        .map(([diameter, price]) => `${diameter}:${price}`)
-        .join('\n');
-      setPricingTableText(pricingText);
+      setFormData(settings);
     }
   }, [settings]);
 
-  const handleSave = async () => {
-    if (!settings) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     try {
-      const pricingTable: Array<[string, number]> = pricingTableText
-        .split('\n')
-        .filter((line) => line.trim())
-        .map((line) => {
-          const parts = line.split(':');
-          if (parts.length !== 2) return null;
-          const diameter = parts[0].trim();
-          const price = parseFloat(parts[1].trim());
-          if (!diameter || isNaN(price)) return null;
-          return [diameter, price] as [string, number];
-        })
-        .filter((entry): entry is [string, number] => entry !== null);
-
-      await updateSettings.mutateAsync({
-        companyName: settings.companyName,
-        certifications: certifications.trim(),
-        contactLocation: contactLocation.trim(),
-        contactEmail: contactEmail.trim(),
-        contactPhone: contactPhone.trim(),
-        googleMapEmbed: googleMapEmbed.trim(),
-        whatsappConfig: whatsappEnabled && whatsappPhone.trim()
-          ? {
-              phoneNumber: whatsappPhone.trim(),
-              prefilledMessage: whatsappMessage.trim() || undefined,
-            }
-          : undefined,
-        pricingTable,
-      });
-
-      toast.success('Settings updated successfully');
-    } catch (error) {
-      console.error('Error updating settings:', error);
-      toast.error('Failed to update settings');
+      await updateSettingsMutation.mutateAsync(formData);
+    } catch (error: any) {
+      console.error('Failed to update settings:', error);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="py-8 text-center">
-        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Site Settings</CardTitle>
-          <CardDescription>
-            Manage certifications, contact details, and other site-wide settings
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="certifications">Certifications / Standards</Label>
-            <Input
-              id="certifications"
-              placeholder="e.g., ISO 4427, BIS Certified"
-              value={certifications}
-              onChange={(e) => setCertifications(e.target.value)}
-            />
-          </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Site Settings</CardTitle>
+        <CardDescription>Manage company information and site configuration</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {updateSettingsMutation.error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {updateSettingsMutation.error.message || 'Failed to update settings'}
+            </AlertDescription>
+          </Alert>
+        )}
 
-          <Separator />
+        {updateSettingsMutation.isSuccess && (
+          <Alert className="mb-4">
+            <AlertDescription>Settings updated successfully!</AlertDescription>
+          </Alert>
+        )}
 
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Contact Details</h3>
             <div className="space-y-2">
-              <Label htmlFor="contactLocation">Location</Label>
+              <Label htmlFor="companyName">Company Name</Label>
               <Input
-                id="contactLocation"
-                placeholder="e.g., 123 Main Street, City, State"
-                value={contactLocation}
-                onChange={(e) => setContactLocation(e.target.value)}
+                id="companyName"
+                value={formData.companyName}
+                onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                disabled={updateSettingsMutation.isPending}
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="contactEmail">Email</Label>
+              <Label htmlFor="contactLocation">Contact Location</Label>
+              <Input
+                id="contactLocation"
+                value={formData.contactLocation}
+                onChange={(e) => setFormData({ ...formData, contactLocation: e.target.value })}
+                disabled={updateSettingsMutation.isPending}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="contactEmail">Contact Email</Label>
               <Input
                 id="contactEmail"
                 type="email"
-                placeholder="e.g., contact@company.com"
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
+                value={formData.contactEmail}
+                onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                disabled={updateSettingsMutation.isPending}
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="contactPhone">Phone Number</Label>
+              <Label htmlFor="contactPhone">Contact Phone</Label>
               <Input
                 id="contactPhone"
-                type="tel"
-                placeholder="e.g., +911234567890"
-                value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
+                value={formData.contactPhone}
+                onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                disabled={updateSettingsMutation.isPending}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="certifications">Certifications</Label>
+              <Textarea
+                id="certifications"
+                value={formData.certifications}
+                onChange={(e) => setFormData({ ...formData, certifications: e.target.value })}
+                disabled={updateSettingsMutation.isPending}
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="googleMapEmbed">Google Maps Embed Code</Label>
+              <Textarea
+                id="googleMapEmbed"
+                placeholder="Paste Google Maps embed iframe code here"
+                value={formData.googleMapEmbed}
+                onChange={(e) => setFormData({ ...formData, googleMapEmbed: e.target.value })}
+                disabled={updateSettingsMutation.isPending}
+                rows={4}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="whatsappPhone">WhatsApp Phone Number</Label>
+              <Input
+                id="whatsappPhone"
+                placeholder="+919876543210"
+                value={formData.whatsappConfig?.phoneNumber || ''}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    whatsappConfig: {
+                      phoneNumber: e.target.value,
+                      prefilledMessage: formData.whatsappConfig?.prefilledMessage,
+                    },
+                  })
+                }
+                disabled={updateSettingsMutation.isPending}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="whatsappMessage">WhatsApp Prefilled Message</Label>
+              <Input
+                id="whatsappMessage"
+                placeholder="Hello, I would like to inquire about..."
+                value={formData.whatsappConfig?.prefilledMessage || ''}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    whatsappConfig: {
+                      phoneNumber: formData.whatsappConfig?.phoneNumber || '',
+                      prefilledMessage: e.target.value,
+                    },
+                  })
+                }
+                disabled={updateSettingsMutation.isPending}
               />
             </div>
           </div>
 
-          <Separator />
-
-          <div className="space-y-2">
-            <Label htmlFor="googleMapEmbed">Google Maps Embed Code</Label>
-            <Textarea
-              id="googleMapEmbed"
-              placeholder='<iframe src="..." ...></iframe>'
-              value={googleMapEmbed}
-              onChange={(e) => setGoogleMapEmbed(e.target.value)}
-              rows={3}
-            />
-            <p className="text-xs text-muted-foreground">
-              Paste the full iframe embed code from Google Maps
-            </p>
-          </div>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">WhatsApp Configuration</h3>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="whatsappEnabled"
-                checked={whatsappEnabled}
-                onChange={(e) => setWhatsappEnabled(e.target.checked)}
-                className="h-4 w-4"
-              />
-              <Label htmlFor="whatsappEnabled">Enable WhatsApp Button</Label>
-            </div>
-            {whatsappEnabled && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="whatsappPhone">Phone Number</Label>
-                  <Input
-                    id="whatsappPhone"
-                    placeholder="e.g., +919876543210"
-                    value={whatsappPhone}
-                    onChange={(e) => setWhatsappPhone(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="whatsappMessage">Prefilled Message (Optional)</Label>
-                  <Textarea
-                    id="whatsappMessage"
-                    placeholder="Hello, I would like to inquire..."
-                    value={whatsappMessage}
-                    onChange={(e) => setWhatsappMessage(e.target.value)}
-                    rows={2}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-
-          <Separator />
-
-          <div className="space-y-2">
-            <Label htmlFor="pricingTable">Pricing Table</Label>
-            <Textarea
-              id="pricingTable"
-              placeholder="20mm:50&#10;25mm:65&#10;32mm:80"
-              value={pricingTableText}
-              onChange={(e) => setPricingTableText(e.target.value)}
-              rows={6}
-            />
-            <p className="text-xs text-muted-foreground">
-              Format: diameter:price (one per line, e.g., "50mm:120")
-            </p>
-          </div>
-
-          <Button
-            onClick={handleSave}
-            disabled={updateSettings.isPending}
-            className="w-full"
-          >
-            {updateSettings.isPending ? (
+          <Button type="submit" disabled={updateSettingsMutation.isPending} className="w-full">
+            {updateSettingsMutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
@@ -232,8 +188,8 @@ export default function AdminSettingsPanel() {
               </>
             )}
           </Button>
-        </CardContent>
-      </Card>
-    </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

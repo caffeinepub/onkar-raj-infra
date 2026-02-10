@@ -2,10 +2,16 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-when-a-user-enters-the-correct-admin-passkey-on-the-existing-admin-login-page-unlock-full-admin-access-across-the-app-including-enquiries-and-messages-for-that-user-session",
-      "featureTitle": "When a user enters the correct admin passkey on the existing admin login page, unlock full admin access across the app (including enquiries and messages) for that user session.",
+      "featureId": "feature-update-the-admin-passkey-verification-flow-so-it-can-authenticate-successfully-on-the-published-production-site-matching-draft-behavior-and-no-longer-fails-with-the-generic-error-authentication-failed-please-try-again-when-the-passkey-is-correct",
+      "featureTitle": "Update the admin passkey verification flow so it can authenticate successfully on the published (production) site, matching draft behavior, and no longer fails with the generic error \"Authentication failed. Please try again.\" when the passkey is correct.",
       "files": [
-        "frontend/src/hooks/useAuthz.ts"
+        "frontend/src/hooks/useAdminActor.ts",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/admin/AdminEnquiriesPanel.tsx",
+        "frontend/src/pages/admin/AdminFeedbackPage.tsx",
+        "frontend/src/pages/admin/AdminMessagesPage.tsx",
+        "frontend/src/pages/admin/AdminProductsPanel.tsx",
+        "frontend/src/pages/admin/AdminSettingsPanel.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -22,12 +28,12 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-fix-the-regression-causing-unauthorized-no-access-errors-for-admin-only-backend-methods-by-ensuring-the-passkey-verification-flow-also-authenticates-the-caller-with-the-backend-s-admin-authorization-mechanism",
-      "featureTitle": "Fix the regression causing \"Unauthorized\"/\"no access\" errors for admin-only backend methods by ensuring the passkey verification flow also authenticates the caller with the backend’s admin authorization mechanism.",
+      "featureId": "feature-refactor-the-admin-passkey-verification-hook-to-avoid-relying-on-the-shared-useactor-initialization-path-when-performing-authenticatewithadminpasskey-ensuring-the-admin-authentication-call-is-made-with-a-working-backend-actor-even-if-actor-initialization-with-secret-token-bootstrapping-fails-or-behaves-differently-in-production",
+      "featureTitle": "Refactor the admin passkey verification hook to avoid relying on the shared `useActor()` initialization path when performing `authenticateWithAdminPasskey`, ensuring the admin authentication call is made with a working backend actor even if actor initialization with secret-token bootstrapping fails or behaves differently in production.",
       "files": [
+        "frontend/src/hooks/useAdminActor.ts",
         "frontend/src/hooks/useAuthz.ts",
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx"
+        "frontend/src/pages/admin/AdminLoginPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -40,6 +46,29 @@
       ],
       "testIds": [
         "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-improve-admin-login-error-reporting-so-that-production-failures-are-diagnosable-without-exposing-sensitive-details-log-the-underlying-failure-reason-to-the-console-with-enough-context-environment-label-step-and-a-sanitized-error-string-and-ensure-the-ui-displays-a-clear-english-message-that-distinguishes-invalid-passkey-vs-connectivity-vs-backend-rejection",
+      "featureTitle": "Improve admin login error reporting so that production failures are diagnosable without exposing sensitive details: log the underlying failure reason to the console with enough context (environment label, step, and a sanitized error string), and ensure the UI displays a clear English message that distinguishes invalid passkey vs connectivity vs backend rejection.",
+      "files": [
+        "frontend/src/hooks/useAuthz.ts",
+        "frontend/src/pages/admin/AdminTwoStepAccessPrompt.tsx",
+        "frontend/src/utils/buildInfo.ts",
+        "frontend/src/utils/sanitizeError.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
       ],
       "confidence": "high"
     }

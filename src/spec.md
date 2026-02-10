@@ -1,12 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Restore full admin access (including enquiries and messages) after entering the shared admin passkey on the existing admin login page.
+**Goal:** Fix admin passkey login so it works reliably on the published (production) site the same way it works in draft, and provide clearer, diagnosable error feedback.
 
 **Planned changes:**
-- Ensure entering passkey `vEDANSH468` unlocks admin status for the remainder of the browser session (until logout/session clear).
-- Fix the regression where admin-only pages (/admin/enquiries, /admin/messages) and admin-only backend methods return Unauthorized by making the passkey verification flow also authenticate the caller with the backend’s admin authorization mechanism.
-- Show an English error message and keep the admin session locked when the passkey is empty/whitespace or incorrect.
-- Keep the admin passkey hard-coded as `vEDANSH468` with no UI/settings to change it.
+- Update the admin passkey verification flow so correct passkeys successfully unlock admin access on production and allow admin-only backend queries to work without authorization errors.
+- Refactor the admin passkey verification hook to use an actor creation/authentication path that does not rely on optional secret-token bootstrapping or shared `useActor()` initialization behavior.
+- Improve admin login error reporting: log sanitized, contextual failure details to the console (environment + step), and show clear English UI messages distinguishing invalid passkey vs connectivity/backend failures.
 
-**User-visible outcome:** After entering the correct passkey once, the user can access admin-only pages (including enquiries and messages) and perform existing admin operations without Unauthorized/no-access errors for that browser session.
+**User-visible outcome:** On the published site, entering the correct admin passkey successfully signs in and redirects into the admin area (e.g., `/admin/products`), admin pages load without authorization errors, and login failures show clear messages instead of a generic “Authentication failed. Please try again.”
